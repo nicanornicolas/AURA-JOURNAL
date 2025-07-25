@@ -23,13 +23,26 @@ services:
 
   # MongoDB Service
   mongo:
-    image: mongo:6.0 # Use a specific version of Mongo
+    image: mongo:6.0-alpine # Using lightweight Alpine variant
     container_name: aura_mongo_db
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
-    restart: unless-stopped  
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   # Define our Entry Ingestor API service
   entry_ingestor_api:
