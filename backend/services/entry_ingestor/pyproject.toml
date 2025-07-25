@@ -1,0 +1,51 @@
+[project]
+name = "entry-ingestor"
+version = "0.1.0"
+description = "Aura Journal Entry Ingestor Service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.116.1",
+    "uvicorn[standard]>=0.35.0",
+    "sqlalchemy>=2.0.41",
+    "psycopg2-binary>=2.9.10",
+    "pymongo>=4.13.2",
+    "pydantic>=2.10.6",
+    "pydantic-settings>=2.10.1",
+    "python-dotenv>=1.0.1",
+    "httpx>=0.28.1",
+    "pytest>=8.4.1",
+    "beautifulsoup4>=4.13.3",
+    "lxml>=5.3.1",
+    "markdownify>=1.1.0",
+    "readabilipy>=0.3.0",
+    "pandas>=2.3.0",
+    "numpy>=2.3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]  # Line too long (handled by formatter)
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

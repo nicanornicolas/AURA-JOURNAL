@@ -1,0 +1,14 @@
+# Ignore Git
+.git
+.gitignore
+
+# Ignore Python specific files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore local environment files and caches
+.env
+.venv/
+.pytest_cache/

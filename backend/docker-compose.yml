@@ -1,0 +1,88 @@
+# Use a specific version of the docker-compose file format for compatibility.
+
+services:
+  # Define our PostgreSQL database service
+  db:
+    image: postgres:17-alpine # Use a specific, lightweight version of Postgres
+    container_name: aura_postgres_db
+    environment:
+      # These variables are used by the Postgres image to initialize the database.
+      # We will load them from a .env file for security.
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      # Map the host port 5432 to the container's port 5432.
+      # This allows us to connect to the DB from our local machine with a GUI tool if needed.
+      - "5432:5432"
+    volumes:
+      # This creates a named volume to persist our database data.
+      # The data will remain even if we stop or remove the container.
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # MongoDB Service
+  mongo:
+    image: mongo:6.0 # Use a specific version of Mongo
+    container_name: aura_mongo_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped  
+
+  # Define our Entry Ingestor API service
+  entry_ingestor_api:
+    container_name: aura_ingestor_api
+    # Tell Docker Compose to build the image from the specified Dockerfile.
+    build:
+      context: ./services/entry_ingestor
+      dockerfile: Dockerfile
+    # This service will not start until the 'db' service is healthy and running.
+    depends_on:
+      - db
+      - mongo
+    ports:
+      # Map the host port 8000 to the container's port 8000.
+      - "8000:8000"
+    # This tells the service to load environment variables from the .env file in the root.
+    env_file:
+      - .env
+    volumes:
+      # Mount our local code into the container for HOT RELOADING.
+      # Any change you make to your Python code will be instantly reflected in the container.
+      - ./services/entry_ingestor/app:/opt/app/app
+      - ./shared:/opt/backend/shared
+      - /opt/app/.venv
+    # Override the Dockerfile's CMD for development to enable --reload.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # Define our nlp_agent api service
+  nlp_agent_api:
+      container_name: aura_nlp_agent_api
+      build:
+        context: ./services/nlp_agent
+        dockerfile: Dockerfile
+      ports:
+        # Use a different port to avoid conflicts
+        - "8001:8000"
+      env_file:
+        - .env
+      volumes:
+        # Hot reloading for the code
+        - ./services/nlp_agent/app:/opt/app/app
+        - ./shared:/opt/backend/shared
+        - /opt/app/.venv
+        # Mount the GCP key from our local machine into the container
+        - ${GCP_KEYFILE_PATH}:/gcp-key.json:ro
+      environment:
+        # Tell the Google client library inside the container where to find the key
+        - GOOGLE_APPLICATION_CREDENTIALS=/gcp-key.json
+      command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      restart: unless-stopped
+
+# Define the named volume we used for the database.
+volumes:
+  postgres_data:
+  mongo_data:
