@@ -1,14 +1,40 @@
-# Ignore Git
+# Git
 .git
 .gitignore
+.gitattributes
 
-# Ignore Python specific files
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Ignore local environment files and caches
-.env
-.venv/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
 .pytest_cache/
+.venv/
+env/
+venv/
+
+# Environment
+.env
+.env.*
+.venv
+.env.local
+
+# Tests
+tests/
+test/
+*.cover
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation
+docs/
+*.md
