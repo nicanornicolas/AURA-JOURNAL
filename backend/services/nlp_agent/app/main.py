@@ -1,12 +1,10 @@
 """NLP Agent FastAPI application."""
 
-import logging
 from fastapi import FastAPI, HTTPException, status
+from loguru import logger
 
 from shared import AnalysisPayload, TextPayload, HealthResponse
 from .gcp_client import analyze_text
-
-logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Aura Journal - NLP Agent Service",
@@ -20,12 +18,16 @@ def handle_analyze_request(payload: TextPayload) -> AnalysisPayload:
     """
     Receives text and returns a full analysis payload.
     """
+    logger.info(f"Received text analysis request for {len(payload.text)} characters")
     try:
         analysis_result = analyze_text(payload.text)
-        logger.info(f"Successfully analyzed text of {len(payload.text)} characters")
+        logger.success(
+            f"Successfully analyzed text - Sentiment: {analysis_result.sentiment.label}, "
+            f"Topics: {len(analysis_result.topics)}"
+        )
         return analysis_result
     except Exception as e:
-        logger.error(f"Error during analysis: {e}")
+        logger.error(f"Error during text analysis: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error during text analysis"

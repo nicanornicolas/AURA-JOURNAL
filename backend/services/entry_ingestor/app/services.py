@@ -1,16 +1,13 @@
 """Business logic for the entry ingestor service."""
 
-import logging
 from typing import Optional, Protocol
 
 import httpx
+from loguru import logger
 from sqlalchemy.orm import Session
 
 from shared import AnalysisPayload, EntryCreate, TextPayload
 from .models import JournalEntry
-
-
-logger = logging.getLogger(__name__)
 
 
 class NLPClient(Protocol):
@@ -88,6 +85,8 @@ class EntryService:
     
     def create_entry(self, db: Session, entry_data: EntryCreate) -> JournalEntry:
         """Create a new journal entry with optional analysis."""
+        logger.info(f"Creating new journal entry for user {entry_data.user_id}")
+        
         # Step 1: Save the entry to PostgreSQL
         db_entry = JournalEntry(
             user_id=entry_data.user_id,
@@ -98,9 +97,11 @@ class EntryService:
         db.refresh(db_entry)
         
         # Step 2: Try to get analysis from NLP service
+        logger.info(f"Requesting analysis from NLP Agent for entry {db_entry.entry_id}")
         analysis = self.nlp_client.analyze_text(entry_data.content)
         
         if analysis:
+            logger.success(f"Successfully received analysis for entry {db_entry.entry_id}")
             # Step 3: Store analysis in MongoDB
             self.insight_storage.store_insight(
                 str(db_entry.entry_id),
@@ -111,6 +112,10 @@ class EntryService:
             setattr(db_entry, 'analysis', analysis)
             logger.info(f"Created entry {db_entry.entry_id} with analysis")
         else:
+            logger.warning(
+                f"Could not get analysis from NLP Agent for entry {db_entry.entry_id}. "
+                "Entry created without analysis."
+            )
             # Set analysis to None for consistency
             setattr(db_entry, 'analysis', None)
             logger.info(f"Created entry {db_entry.entry_id} without analysis")

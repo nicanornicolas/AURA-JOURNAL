@@ -1,0 +1,122 @@
+name: Backend CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install uv
+        uv pip install ".[dev]"
+    - name: Run ruff linter
+      run: |
+        cd backend
+        ruff check .
+    - name: Run mypy type checker
+      run: |
+        cd backend
+        mypy .
+
+  test-shared-components:
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      mongo:
+        image: mongo:6.0-alpine
+        ports:
+          - 27017:27017
+        options: --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install uv
+        uv pip install ".[dev]"
+    - name: Run shared tests
+      run: |
+        cd backend
+        pytest tests/test_shared.py -v
+
+  test-services:
+    runs-on: ubuntu-latest
+    needs: test-shared-components
+    strategy:
+      matrix:
+        service: [entry_ingestor, nlp_agent]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      mongo:
+        image: mongo:6.0-alpine
+        ports:
+          - 27017:27017
+        options: --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        cd backend/services/${{ matrix.service }}
+        pip install uv
+        uv pip install ".[dev]"
+    - name: Run unit tests
+      run: |
+        cd backend/services/${{ matrix.service }}
+        PYTHONPATH=. pytest -m "not integration"
+    - name: Run integration tests
+      if: matrix.service == 'entry_ingestor'  # Only entry_ingestor has integration tests currently
+      run: |
+        cd backend/services/${{ matrix.service }}
+        PYTHONPATH=. pytest -m integration
+
+  build-docker-images:
+    runs-on: ubuntu-latest
+    needs: test-services
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build entry_ingestor image
+      run: |
+        cd backend/services/entry_ingestor
+        docker build -t aura-journal-entry-ingestor .
+    - name: Build nlp_agent image
+      if: github.ref == 'refs/heads/main'  # Only build nlp_agent on main branch due to GCP credentials
+      env:
+        GCP_KEYFILE: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+      run: |
+        cd backend/services/nlp_agent
+        echo "$GCP_KEYFILE" > gcp-key.json
+        docker build -t aura-journal-nlp-agent .
+        rm gcp-key.json

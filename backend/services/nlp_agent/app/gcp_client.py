@@ -2,6 +2,7 @@
 
 from google.cloud import language_v2
 from shared import AnalysisPayload, SentimentResult
+from .config import settings
 
 def analyze_text(text: str) -> AnalysisPayload:
     """
@@ -15,11 +16,11 @@ def analyze_text(text: str) -> AnalysisPayload:
     # 1. Get Sentiment
     sentiment_response = client.analyze_sentiment(document=document).document_sentiment
     sentiment_label = "NEUTRAL"
-    if sentiment_response.score > 0.25:
+    if sentiment_response.score > settings.sentiment_positive_threshold:
         sentiment_label = "POSITIVE"
-    elif sentiment_response.score < -0.25:
+    elif sentiment_response.score < settings.sentiment_negative_threshold:
         sentiment_label = "NEGATIVE"
-    elif abs(sentiment_response.magnitude) > 1.5: # Significant mixed feelings
+    elif abs(sentiment_response.magnitude) > settings.sentiment_mixed_magnitude_threshold:
         sentiment_label = "MIXED"
 
     # 2. Get Topics (Entities)
