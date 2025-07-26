@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { BookText } from 'lucide-react-native';
+import { BookText, NotebookPen } from 'lucide-react-native';
 
 // We can reuse the same helper function from the InsightsPanel
 const getSentimentEmoji = (label) => {

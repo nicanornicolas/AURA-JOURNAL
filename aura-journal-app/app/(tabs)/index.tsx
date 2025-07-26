@@ -1,7 +1,8 @@
 // frontend/app/(tabs)/index.tsx
 
 import React, { useState } from 'react';
-import { StyleSheet, Text, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { StyleSheet, Text, SafeAreaView, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 // Import our components and services
 import JournalInput from '../../src/components/JournalInput';
