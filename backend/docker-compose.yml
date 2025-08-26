@@ -23,7 +23,7 @@ services:
 
   # MongoDB Service
   mongo:
-    image: mongo:6.0-alpine
+    image: mongo:7.0-jammy
     container_name: aura_mongo_db
     ports:
       - "27017:27017"
