@@ -1,0 +1,22 @@
+diff --git a/node_modules/@react-navigation/elements/lib/module/Screen.js b/node_modules/@react-navigation/elements/lib/module/Screen.js
+index 4f3e618..5a361b7 100644
+--- a/node_modules/@react-navigation/elements/lib/module/Screen.js
++++ b/node_modules/@react-navigation/elements/lib/module/Screen.js
+@@ -40,12 +40,11 @@
+       value: navigation,
+       children: /*#__PURE__*/_jsx(NavigationRouteContext.Provider, {
+         value: route,
+-        children: /*#__PURE__*/_jsx(View, {
+-          pointerEvents: "box-none",
++        children: /*#__PURE__*/_jsx(View, {
+           onLayout: e => {
+             const {
+               height
+             } = e.nativeEvent.layout;
+             setHeaderHeight(height);
+           },
+-          style: [styles.header, headerTransparent ? styles.absolute : null],
++          style: [styles.header, headerTransparent ? styles.absolute : null, { pointerEvents: "box-none" }],
+           children: header
+         })
+       })
