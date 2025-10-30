@@ -6,18 +6,27 @@ This project contains the backend services for the Aura Journal application, bui
 
 The backend consists of several services:
 
+- **Auth Service**: Handles user authentication, registration, and session management (PostgreSQL)
 - **Entry Ingestor**: Handles journal entry creation and storage (PostgreSQL + MongoDB for insights)
 - **NLP Agent**: Provides text analysis using Google Cloud Natural Language API
 - **Shared**: Common utilities, schemas, and database management
 
 ## Services Overview
 
+### Auth Service
+
+- **Port**: 8002
+- **Technology**: FastAPI, SQLAlchemy, PostgreSQL, JWT
+- **Purpose**: User authentication, registration, login, token management, and session handling
+
 ### Entry Ingestor Service
+
 - **Port**: 8000
 - **Technology**: FastAPI, SQLAlchemy, PostgreSQL, MongoDB
 - **Purpose**: Creates journal entries, coordinates with NLP service for analysis, stores insights
 
-### NLP Agent Service  
+### NLP Agent Service
+
 - **Port**: 8001
 - **Technology**: FastAPI, Google Cloud Language API
 - **Purpose**: Provides sentiment analysis and topic extraction for journal entries
@@ -25,6 +34,7 @@ The backend consists of several services:
 ## Development Setup
 
 ### Prerequisites
+
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) package manager
 - Docker and Docker Compose
@@ -33,18 +43,24 @@ The backend consists of several services:
 ### Installation
 
 1. **Install dependencies for each service:**
+
    ```bash
-   # Entry Ingestor
-   cd services/entry_ingestor
+   # Auth Service
+   cd services/auth_service
    uv sync
-   
-   # NLP Agent  
+
+   # Entry Ingestor
+   cd ../entry_ingestor
+   uv sync
+
+   # NLP Agent
    cd ../nlp_agent
    uv sync
    ```
 
 2. **Environment Setup:**
    Create a `.env` file in the backend root with:
+
    ```bash
    # Database Configuration
    POSTGRES_USER=your_user
@@ -52,21 +68,31 @@ The backend consists of several services:
    POSTGRES_DB=aura_journal
    POSTGRES_HOST=localhost
    POSTGRES_PORT=5432
-   
+
    # MongoDB Configuration
    MONGO_URL=mongodb://localhost:27017
    MONGO_DB_NAME=aura_insights
-   
+
    # NLP Service Configuration
    NLP_SERVICE_URL=http://localhost:8001/analyze
-   
+
    # Google Cloud Configuration
    GCP_KEYFILE_PATH=/path/to/your/gcp-key.json
    ```
 
 ## Running Tests
 
+### Auth Service Tests
+
+```bash
+cd backend
+./services/auth_service/.venv/Scripts/Activate.ps1  # Windows
+# source ./services/auth_service/.venv/bin/activate  # Linux/Mac
+python -m pytest services/auth_service/tests/ -v
+```
+
 ### Entry Ingestor Tests
+
 ```bash
 cd backend
 ./services/entry_ingestor/.venv/Scripts/Activate.ps1  # Windows
@@ -75,6 +101,7 @@ python -m pytest services/entry_ingestor/tests/ -v
 ```
 
 ### NLP Agent Tests
+
 ```bash
 cd backend
 ./services/nlp_agent/.venv/Scripts/Activate.ps1  # Windows
@@ -85,36 +112,56 @@ python -m pytest services/nlp_agent/tests/ -v
 ## Running Services
 
 ### Using Docker Compose (Recommended)
+
 ```bash
 docker-compose up --build
 ```
 
 This starts:
+
 - PostgreSQL database (port 5432)
 - MongoDB database (port 27017)
+- Auth Service API (port 8002)
 - Entry Ingestor API (port 8000)
 - NLP Agent API (port 8001)
 
 ### Manual Development Setup
+
 ```bash
-# Terminal 1: Start Entry Ingestor
-cd services/entry_ingestor
+# Terminal 1: Start Auth Service
+cd services/auth_service
+./.venv/Scripts/Activate.ps1  # Windows
+uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+
+# Terminal 2: Start Entry Ingestor
+cd ../entry_ingestor
 ./.venv/Scripts/Activate.ps1  # Windows
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-# Terminal 2: Start NLP Agent
-cd services/nlp_agent
-./.venv/Scripts/Activate.ps1  # Windows  
+# Terminal 3: Start NLP Agent
+cd ../nlp_agent
+./.venv/Scripts/Activate.ps1  # Windows
 uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 ## API Endpoints
 
+### Auth Service (localhost:8002)
+
+- `POST /auth/register` - Register a new user
+- `POST /auth/login` - User login
+- `POST /auth/refresh` - Refresh access token
+- `POST /auth/logout` - User logout
+- `GET /auth/profile` - Get user profile
+- `GET /health` - Health check
+
 ### Entry Ingestor Service (localhost:8000)
+
 - `POST /entries` - Create a new journal entry
 - `GET /health` - Health check
 
 ### NLP Agent Service (localhost:8001)
+
 - `POST /analyze` - Analyze text for sentiment and topics
 - `GET /health` - Health check
 
@@ -122,7 +169,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 
 - **Framework**: FastAPI
 - **Package Management**: uv
-- **Databases**: PostgreSQL (entries), MongoDB (insights)
+- **Databases**: PostgreSQL (entries, auth), MongoDB (insights)
 - **External APIs**: Google Cloud Natural Language API
 - **Containerization**: Docker & Docker Compose
 - **Testing**: pytest
@@ -131,16 +178,33 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ## Key Features
 
 - **Microservices Architecture**: Separate, containerized services
-- **Database Integration**: PostgreSQL for structured data, MongoDB for analytics
+- **Database Integration**: PostgreSQL for structured data and authentication, MongoDB for analytics
 - **Error Handling**: Comprehensive error handling and logging
 - **Testing**: Full test coverage with mocking for external dependencies
 - **Development Tools**: Hot reload, dependency injection, type hints
 - **Cloud Integration**: Google Cloud Natural Language API for text analysis
 
 ## Project Structure
+
 ```
 backend/
 ├── services/
+│   ├── auth_service/
+│   │   ├── __init__.py
+│   │   ├── auth_handler.py
+│   │   ├── database.py
+│   │   ├── main.py
+│   │   ├── migrate.py
+│   │   ├── models.py
+│   │   ├── pyproject.toml
+│   │   ├── README.md
+│   │   ├── repositories/
+│   │   ├── run.py
+│   │   ├── tests/
+│   │   │   ├── __init__.py
+│   │   │   ├── test_api.py
+│   │   │   └── test_auth_handler.py
+│   │   └── migrations/
 │   ├── entry_ingestor/
 │   │   ├── app/
 │   │   ├── tests/
@@ -171,14 +235,18 @@ A restructured, testable, and maintainable backend architecture for the Aura Jou
 This backend follows a clean architecture pattern with:
 
 ### **Shared Components**
+
 - **`shared/`**: Common schemas, database utilities, and configuration
 - **`tests/`**: Global test fixtures and shared tests
 
 ### **Microservices**
+
+- **`services/auth_service/`**: Handles user authentication and session management
 - **`services/entry_ingestor/`**: Handles journal entry creation and storage
 - **`services/nlp_agent/`**: Provides text analysis using Google Cloud NLP
 
 ### **Key Architectural Benefits**
+
 - ✅ **Dependency Injection**: Easy testing and swappable components
 - ✅ **Protocol-Based Design**: Type-safe interfaces with proper abstractions
 - ✅ **Shared Schemas**: Consistent data models across services
@@ -188,19 +256,22 @@ This backend follows a clean architecture pattern with:
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.11+
-- PostgreSQL (for journal entries)
+- PostgreSQL (for journal entries and authentication)
 - MongoDB (for insights)
 - Google Cloud credentials (for NLP analysis)
 
 ### Installation
 
 1. **Clone and navigate to backend:**
+
 ```bash
 cd backend/
 ```
 
 2. **Install dependencies:**
+
 ```bash
 # Using uv (recommended)
 uv sync --extra dev --extra gcp
@@ -210,12 +281,14 @@ pip install -e ".[dev,gcp]"
 ```
 
 3. **Set up environment variables:**
+
 ```bash
 cp .env.example .env
 # Edit .env with your database URLs and GCP credentials
 ```
 
 ### Environment Variables
+
 ```bash
 # Database connections
 DATABASE_URL=postgresql://user:password@localhost:5432/aura_journal
@@ -236,11 +309,13 @@ LOG_LEVEL=INFO
 ## 🧪 Running Tests
 
 ### Run All Tests
+
 ```bash
 python scripts/run_tests.py
 ```
 
 ### Run Specific Test Types
+
 ```bash
 # Unit tests only
 python scripts/run_tests.py --unit
@@ -249,6 +324,7 @@ python scripts/run_tests.py --unit
 python scripts/run_tests.py --integration
 
 # Specific service tests
+python scripts/run_tests.py --service auth-service
 python scripts/run_tests.py --service entry-ingestor
 python scripts/run_tests.py --service nlp-agent
 
@@ -257,9 +333,11 @@ python scripts/run_tests.py --coverage
 ```
 
 ### Manual Testing
+
 ```bash
 # Run tests directly with pytest
 pytest tests/                          # Shared tests
+pytest services/auth_service/tests/    # Auth service tests
 pytest services/entry_ingestor/tests/  # Entry ingestor tests
 pytest services/nlp_agent/tests/       # NLP agent tests
 
@@ -273,7 +351,11 @@ pytest --cov=. --cov-report=html
 ## 🏃‍♂️ Running Services
 
 ### Individual Services (Development)
+
 ```bash
+# Auth Service (port 8002)
+python scripts/run_service.py auth-service
+
 # Entry Ingestor (port 8000)
 python scripts/run_service.py entry-ingestor
 
@@ -282,6 +364,7 @@ python scripts/run_service.py nlp-agent
 ```
 
 ### Using Docker Compose (Production-like)
+
 ```bash
 # From the parent directory
 cd ../
@@ -289,7 +372,11 @@ docker-compose -f backend/docker-compose.yml up
 ```
 
 ### Manual Service Startup
+
 ```bash
+# Auth Service
+PYTHONPATH=. uvicorn services.auth_service.main:app --reload --port 8002
+
 # Entry Ingestor
 PYTHONPATH=. uvicorn services.entry_ingestor.app.main:app --reload --port 8000
 
@@ -299,9 +386,97 @@ PYTHONPATH=. uvicorn services.nlp_agent.app.main:app --reload --port 8001
 
 ## 📝 API Documentation
 
+### Auth Service (Port 8002)
+
+#### User Registration
+
+```bash
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!",
+  "first_name": "John",
+  "last_name": "Doe"
+}
+```
+
+**Response:**
+
+```json
+{
+  "user_id": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "is_active": true,
+  "is_verified": false,
+  "created_at": "2025-01-25T10:30:00Z"
+}
+```
+
+#### User Login
+
+```bash
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+```
+
+**Response:**
+
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "token_type": "bearer",
+  "expires_in": 900
+}
+```
+
+#### Get User Profile
+
+```bash
+GET /auth/profile
+Authorization: Bearer <access_token>
+```
+
+**Response:**
+
+```json
+{
+  "user_id": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "is_active": true,
+  "is_verified": false
+}
+```
+
+#### Refresh Token
+
+```bash
+POST /auth/refresh
+Authorization: Bearer <refresh_token>
+```
+
+#### Logout
+
+```bash
+POST /auth/logout
+Authorization: Bearer <refresh_token>
+```
+
 ### Entry Ingestor Service (Port 8000)
 
 #### Create Journal Entry
+
 ```bash
 POST /entries
 Content-Type: application/json
@@ -313,6 +488,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "entry_id": "456e7890-e89b-12d3-a456-426614174001",
@@ -330,6 +506,7 @@ Content-Type: application/json
 ```
 
 #### Health Check
+
 ```bash
 GET /health
 ```
@@ -337,6 +514,7 @@ GET /health
 ### NLP Agent Service (Port 8001)
 
 #### Analyze Text
+
 ```bash
 POST /analyze
 Content-Type: application/json
@@ -347,10 +525,11 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "sentiment": {
-    "label": "POSITIVE", 
+    "label": "POSITIVE",
     "score": 0.85
   },
   "topics": ["work", "office", "productivity"]
@@ -358,6 +537,7 @@ Content-Type: application/json
 ```
 
 #### Health Check
+
 ```bash
 GET /health
 ```
@@ -365,6 +545,7 @@ GET /health
 ## 🛠️ Development Workflow
 
 ### Code Quality
+
 ```bash
 # Lint and format code
 ruff check --fix .
@@ -377,11 +558,13 @@ mypy shared/ services/
 ### Testing Strategy
 
 1. **Unit Tests**: Test individual components in isolation
+
    - Services with mocked dependencies
    - Shared utilities and schemas
    - Individual functions and classes
 
 2. **Integration Tests**: Test API endpoints with mocked external services
+
    - FastAPI endpoint behavior
    - Request/response validation
    - Error handling
@@ -407,13 +590,29 @@ backend/
 │   ├── database.py                  # Database connection management
 │   └── schemas.py                   # Pydantic models
 ├── services/
+│   ├── auth_service/                # Authentication service
+│   │   ├── __init__.py
+│   │   ├── auth_handler.py          # Authentication logic
+│   │   ├── database.py              # Database models and connections
+│   │   ├── main.py                  # FastAPI app
+│   │   ├── migrate.py               # Database migrations
+│   │   ├── models.py                # Pydantic models
+│   │   ├── pyproject.toml
+│   │   ├── README.md
+│   │   ├── repositories/            # Data access layer
+│   │   ├── run.py                   # Service runner
+│   │   ├── tests/                   # Unit and integration tests
+│   │   │   ├── __init__.py
+│   │   │   ├── test_api.py          # API endpoint tests
+│   │   │   └── test_auth_handler.py # Auth handler tests
+│   │   └── migrations/              # Database migrations
 │   ├── entry_ingestor/              # Journal entry service
 │   │   ├── app/
 │   │   │   ├── __init__.py
 │   │   │   ├── main.py              # FastAPI app
 │   │   │   ├── models.py            # SQLAlchemy models
 │   │   │   ├── services.py          # Business logic
-│   │   │   └── dependencies.py     # Dependency injection
+│   │   │   └── dependencies.py      # Dependency injection
 │   │   └── tests/
 │   │       ├── test_main.py         # API endpoint tests
 │   │       └── test_services.py     # Service layer tests
@@ -440,14 +639,17 @@ backend/
 ### Common Issues
 
 1. **Import Errors**
+
    - Ensure `PYTHONPATH` includes the backend directory
    - Check that `__init__.py` files exist in all packages
 
 2. **Database Connection Issues**
+
    - Verify `DATABASE_URL` and `MONGODB_URL` in `.env`
    - Ensure databases are running and accessible
 
 3. **Google Cloud Authentication**
+
    - Set `GOOGLE_APPLICATION_CREDENTIALS` environment variable
    - Verify GCP key file has proper permissions
 
@@ -456,6 +658,7 @@ backend/
    - Verify test isolation (no shared state between tests)
 
 ### Debug Mode
+
 ```bash
 # Run with debug logging
 LOG_LEVEL=DEBUG python scripts/run_service.py entry-ingestor
@@ -464,8 +667,10 @@ LOG_LEVEL=DEBUG python scripts/run_service.py entry-ingestor
 ## 🚢 Deployment
 
 ### Docker Build
+
 ```bash
 # Build individual service images
+docker build -t aura-auth-service services/auth_service/
 docker build -t aura-entry-ingestor services/entry_ingestor/
 docker build -t aura-nlp-agent services/nlp_agent/
 
@@ -474,6 +679,7 @@ docker-compose up --build
 ```
 
 ### Production Considerations
+
 - Use environment-specific configuration
 - Set up proper logging and monitoring
 - Configure database connection pooling
