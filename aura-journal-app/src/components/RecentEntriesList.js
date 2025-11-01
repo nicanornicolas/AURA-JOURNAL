@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { BookText, NotebookPen } from 'lucide-react-native';
+import { useTheme } from '../context/ThemeContext';
 
 // We can reuse the same helper function from the InsightsPanel
 const getSentimentEmoji = (label) => {
@@ -13,6 +14,8 @@ const getSentimentEmoji = (label) => {
 };
 
 const EntryCard = ({ item }) => {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const formattedDate = new Date(item.timestamp).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -32,6 +35,9 @@ const EntryCard = ({ item }) => {
 };
 
 const RecentEntriesList = ({ entries }) => {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
+
   if (!entries || entries.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -44,21 +50,20 @@ const RecentEntriesList = ({ entries }) => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <BookText size={20} color="#8B5CF6" />
+        <BookText size={20} color={theme.primary} />
         <Text style={styles.header}>Recent Entries</Text>
       </View>
       <FlatList
         data={entries}
         renderItem={({ item }) => <EntryCard item={item} />}
         keyExtractor={(item) => item.id}
-        // We add a separator for better visual distinction
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme) => StyleSheet.create({
   container: {
     marginTop: 20,
     marginHorizontal: 16,
@@ -71,11 +76,11 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.text,
     marginLeft: 8,
   },
   cardContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.card,
     borderRadius: 8,
     padding: 16,
   },
@@ -84,7 +89,7 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontSize: 14,
-    color: '#374151',
+    color: theme.textSecondary,
     lineHeight: 20,
   },
   cardFooter: {
@@ -95,7 +100,7 @@ const styles = StyleSheet.create({
   },
   cardDate: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.textSecondary,
   },
   cardEmoji: {
     fontSize: 16,
@@ -112,11 +117,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4B5563',
+    color: theme.textSecondary,
   },
   emptySubText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.textSecondary,
     marginTop: 4,
   },
 });

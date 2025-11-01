@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Brain } from 'lucide-react-native';
+import { useTheme } from '../context/ThemeContext';
+import { palette } from '../theme/theme';
 
 // Helper function to get sentiment styles
 const getSentimentStyles = (label) => {
@@ -17,8 +19,11 @@ const getSentimentStyles = (label) => {
 };
 
 const InsightsPanel = ({ insights }) => {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
+
   if (!insights) {
-    return null; // Don't render anything if there are no insights
+    return null;
   }
 
   const { sentiment, topics } = insights;
@@ -27,7 +32,7 @@ const InsightsPanel = ({ insights }) => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Brain size={20} color="#8B5CF6" />
+        <Brain size={20} color={theme.primary} />
         <Text style={styles.header}>Instant Reflection</Text>
       </View>
 
@@ -56,14 +61,17 @@ const InsightsPanel = ({ insights }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme) => StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.card,
     borderRadius: 12,
     marginHorizontal: 16,
     marginTop: 20,
-    boxShadow: '0px 1px 4px rgba(0, 0, 0, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
   },
   headerContainer: {
@@ -74,7 +82,7 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.text,
     marginLeft: 8,
   },
   insightRow: {
@@ -85,7 +93,7 @@ const styles = StyleSheet.create({
   },
   insightLabel: {
     fontSize: 14,
-    color: '#4B5563',
+    color: theme.textSecondary,
   },
   sentimentText: {
     fontSize: 14,
@@ -98,19 +106,19 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   topicBadge: {
-    backgroundColor: '#EDE9FE', // Light purple
+    backgroundColor: '#EDE9FE', // This is a specific color, not from the theme
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   topicText: {
-    color: '#5B21B6', // Dark purple
+    color: palette.purpleDark,
     fontSize: 12,
     fontWeight: '500',
   },
   noTopicsText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.textSecondary,
     fontStyle: 'italic',
   },
 });
