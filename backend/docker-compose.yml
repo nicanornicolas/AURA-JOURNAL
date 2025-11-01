@@ -46,8 +46,8 @@ services:
   entry_ingestor_api:
     container_name: aura_ingestor_api
     build:
-      context: ./services/entry_ingestor
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/entry_ingestor/Dockerfile
     # Updated depends_on to wait for the database services to be healthy.
     depends_on:
       db:
@@ -73,8 +73,8 @@ services:
   nlp_agent_api:
     container_name: aura_nlp_agent_api
     build:
-      context: ./services/nlp_agent
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/nlp_agent/Dockerfile
     # Added depends_on to ensure consistency.
     depends_on:
       db:

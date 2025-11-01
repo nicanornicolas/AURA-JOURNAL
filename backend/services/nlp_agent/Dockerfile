@@ -19,10 +19,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     uv sync --locked --no-install-project --no-dev
 
-# 3. Copy all project code into the builder.
+# 3. Copy shared module first (for better layer caching)
+COPY ../../shared /shared
+
+# 4. Copy all project code into the builder.
 COPY . .
 
-# 4. Install the project code itself into the virtual environment.
+# 5. Install the project code itself into the virtual environment.
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 

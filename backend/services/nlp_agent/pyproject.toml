@@ -16,11 +16,15 @@ dependencies = [
     "pymongo>=4.13.2",
     "sqlalchemy>=2.0.41",
     "psycopg2-binary>=2.9.10",
+    "aura-journal-shared",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv.sources]
+aura-journal-shared = { path = "../../shared", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
