@@ -12,18 +12,18 @@ FROM base as builder
 
 # 1. Install any build-time system dependencies if needed (none for this service).
 
-# 2. Install Python dependencies into a virtual environment.
+# 2. Copy shared module first (for better layer caching)
+COPY ../../shared /shared
+
+# 3. Copy all project code into the builder.
+COPY . .
+
+# 4. Install Python dependencies into a virtual environment.
 # This uses BuildKit's advanced mounting to keep layers clean and leverage caching.
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     uv sync --locked --no-install-project --no-dev
-
-# 3. Copy shared module first (for better layer caching)
-COPY ../../shared /shared
-
-# 4. Copy all project code into the builder.
-COPY . .
 
 # 5. Install the project code itself into the virtual environment.
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -56,6 +56,6 @@ ENV PYTHONUNBUFFERED 1
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
