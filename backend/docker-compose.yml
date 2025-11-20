@@ -1,9 +1,7 @@
-# Note: The top-level 'version' key is deprecated and no longer needed.
-
 services:
-  # Define our PostgreSQL database service
+  # ---------------- Database Services ----------------
   db:
-    image: postgres:16-alpine # Using a specific, lightweight version
+    image: postgres:16-alpine
     container_name: aura_postgres_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -13,15 +11,13 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # Added a healthcheck so other services can wait until the DB is truly ready.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
-  # MongoDB Service
   mongo:
     image: mongo:7.0-jammy
     container_name: aura_mongo_db
@@ -29,26 +25,24 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
-    restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     healthcheck:
-      # Using mongosh which is standard for modern Mongo images.
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 10s
       timeout: 5s
       retries: 5
-    # Note: The 'deploy' key is for Docker Swarm and is ignored by docker-compose up.
-    # It has been removed to avoid confusion.
+    restart: unless-stopped
 
-  # Define our Entry Ingestor API service
+  # ---------------- API Services ----------------
+
+  # 1. Entry Ingestor (Host: 8000)
   entry_ingestor_api:
     container_name: aura_ingestor_api
     build:
       context: .
       dockerfile: ./services/entry_ingestor/Dockerfile
-    # Updated depends_on to wait for the database services to be healthy.
     depends_on:
       db:
         condition: service_healthy
@@ -58,47 +52,67 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
     volumes:
-      # Mount our local code into the container for HOT RELOADING.
-      # Any change you make to your Python code will be instantly reflected.
-      - ./services/entry_ingestor/app:/opt/app/app
-      # This line assumes you have a 'shared' folder inside './backend'
-      - ./shared:/opt/app/shared
-      # CRITICAL FIX: The anonymous volume for .venv has been REMOVED.
-      # It was hiding the virtual environment created in the Docker image.
+      # Mount code to /app/app (matches Dockerfile structure)
+      - ./services/entry_ingestor/app:/app/app
+      - ./shared:/app/shared
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 
-  # Define our nlp_agent api service
+  # 2. NLP Agent (Host: 8001)
   nlp_agent_api:
     container_name: aura_nlp_agent_api
     build:
-      context: .
+      context: . 
       dockerfile: ./services/nlp_agent/Dockerfile
-    # Added depends_on to ensure consistency.
     depends_on:
       db:
         condition: service_healthy
       mongo:
         condition: service_healthy
     ports:
-      - "8001:8000" # Using a different port to avoid conflicts
+      # Maps Host 8001 -> Container 8000 (NLP listens on 8000 internally)
+      - "8001:8000" 
     env_file:
       - .env
-    volumes:
-      # Hot reloading for the code
-      - ./services/nlp_agent/app:/opt/app/app
-      - ./shared:/opt/app/shared
-      # CRITICAL FIX: The anonymous volume for .venv has been REMOVED.
-      # Mount the GCP key from our local machine into the container (read-only is good practice)
-      - ${GCP_KEYFILE_PATH}:/gcp-key.json:ro
     environment:
-      # Tell the Google client library inside the container where to find the key
+      - PYTHONPATH=/app
       - GOOGLE_APPLICATION_CREDENTIALS=/gcp-key.json
+    volumes:
+      - ./services/nlp_agent/app:/app/app
+      - ./shared:/app/shared
+      - ${GCP_KEYFILE_PATH}:/gcp-key.json:ro
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 
-# Define the named volumes we used for the databases.
+  # 3. Auth Service (Host: 8002)
+  auth_service:
+    container_name: aura_auth_service
+    build:
+      context: .  # Builds from Root to access pyproject.toml
+      dockerfile: ./services/auth_service/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Maps Host 8002 -> Container 8001 (Auth listens on 8001 internally)
+      - "8002:8001"
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      # Auth service seems to be flat (main.py at root of service folder)
+      # So we mount directly to /app
+      - ./services/auth_service:/app
+      # If Auth needs shared:
+      # - ./shared:/app/shared
+    # Command matches the Dockerfile (main:app)
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   mongo_data:

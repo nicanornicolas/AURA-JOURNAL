@@ -1,58 +1,62 @@
 # ---- Base Stage ----
-# Use the new official standard base image for uv + Python.
 FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim as base
 
-# Set the working directory for all subsequent stages.
+# 1. Define the environment location OUTSIDE of /app
+# This ensures docker-compose volumes (mounted at /app) don't hide your installed packages.
+ENV UV_PROJECT_ENVIRONMENT="/venv"
+ENV PATH="/venv/bin:$PATH"
+
+# 2. Set working directory
 WORKDIR /app
 
-
 # ---- Builder Stage ----
-# This stage securely builds the application and all dependencies.
 FROM base as builder
 
-# 1. Install any build-time system dependencies if needed (none for this service).
+# 3. Copy dependency definitions
+# (Assumes build context is the project root, per your docker-compose)
+COPY pyproject.toml uv.lock ./
 
-# 2. Copy shared module first (for better layer caching)
-COPY ../../shared /shared
-
-# 3. Copy all project code into the builder.
-COPY . .
-
-# 4. Install Python dependencies into a virtual environment.
-# This uses BuildKit's advanced mounting to keep layers clean and leverage caching.
+# 4. Install dependencies
+# FIX: Removed the syntax error space in 'target'
+# We use --no-install-project because we just want the libs in /venv
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    uv sync --locked --no-install-project --no-dev
-
-# 5. Install the project code itself into the virtual environment.
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
-
+    uv sync --frozen --no-install-project --no-dev
 
 # ---- Final Stage ----
-# This stage creates the final, lean, and secure production image.
 FROM base as final
 
-# 1. Install RUNTIME system dependencies and create a non-root user.
-# ca-certificates is often needed for making secure HTTPS requests to external APIs.
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
+# 5. Install Runtime Dependencies (Curl is needed for the healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     useradd --system --create-home --shell /bin/bash appuser
 
-# 2. Copy the fully built application (code + .venv) from the builder stage.
-COPY --from=builder /app /app
+# 6. Copy the installed Virtual Environment from builder
+COPY --from=builder /venv /venv
 
-# 3. Set ownership and switch to the non-root user for security.
-RUN chown -R appuser:appuser /app
+# 7. Copy Application Code
+# FIX: You must copy the code into the image, even if using volumes for dev.
+# Adjust these source paths if your Dockerfile location changes.
+# These paths assume 'docker build' is run from the PROJECT ROOT.
+COPY ./services/nlp_agent/app /app/app
+COPY ./shared /app/shared
+
+# 8. Set ownership
+# We chown /app so the user can write temp files if needed.
+# We chown /venv so the user could theoretically update it (optional, but safe).
+RUN chown -R appuser:appuser /app /venv
+
+# 9. Switch User
 USER appuser
 
-# 4. Configure the runtime environment.
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# 10. Environment Config
+# FIX: REMOVED the line that reset PATH to /app/.venv/bin. 
+# We inherit PATH="/venv/bin:$PATH" from the Base stage.
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+# Ensure Python finds the shared module and app module
+ENV PYTHONPATH="/app"
 
-# 5. Expose port, define healthcheck, and run the application.
+# 11. Run
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
