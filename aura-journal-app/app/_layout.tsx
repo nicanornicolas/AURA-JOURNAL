@@ -8,6 +8,10 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 
+// --- ADD THIS IMPORT ---
+// We alias it to 'AuraThemeProvider' to avoid conflict with the navigation ThemeProvider
+import { ThemeProvider as AuraThemeProvider } from '../src/context/ThemeContext'; 
+
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -49,11 +53,15 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    // --- WRAP EVERYTHING WITH YOUR CUSTOM PROVIDER ---
+    <AuraThemeProvider>
+      {/* This inner Provider handles React Navigation colors (headers, tabs) */}
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
+      </ThemeProvider>
+    </AuraThemeProvider>
   );
 }
