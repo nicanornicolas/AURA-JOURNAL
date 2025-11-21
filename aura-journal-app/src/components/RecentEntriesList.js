@@ -1,128 +1,171 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { BookText, NotebookPen } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Calendar, ArrowRight, BookHeart } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 
-// We can reuse the same helper function from the InsightsPanel
+// Helper for sentiment emoji
 const getSentimentEmoji = (label) => {
   switch (label?.toUpperCase()) {
     case 'POSITIVE': return '😊';
     case 'NEGATIVE': return '😔';
     case 'MIXED': return '🤔';
-    default: return '😐';
+    default: return '✨';
   }
 };
 
-const EntryCard = ({ item }) => {
-  const { theme } = useTheme();
-  const styles = getStyles(theme);
+const EntryCard = ({ item, isDark, theme }) => {
   const formattedDate = new Date(item.timestamp).toLocaleDateString('en-US', {
+    weekday: 'short',
     month: 'short',
     day: 'numeric',
   });
-  
+
+  // Dynamic styles for Glassmorphism
+  const glassStyle = {
+    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.4)' : 'rgba(255, 255, 255, 0.6)',
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.4)',
+  };
+
   return (
-    <View style={styles.cardContainer}>
-      <View style={styles.cardContent}>
-        <Text style={styles.cardText} numberOfLines={2}>{item.content}</Text>
-        <View style={styles.cardFooter}>
-          <Text style={styles.cardDate}>{formattedDate}</Text>
-          <Text style={styles.cardEmoji}>{getSentimentEmoji(item.insights?.sentiment?.label)}</Text>
+    <View style={[styles.card, glassStyle]}>
+      <View style={styles.cardHeader}>
+        <View style={styles.dateRow}>
+          <Calendar size={14} color={theme.textSecondary} />
+          <Text style={[styles.dateText, { color: theme.textSecondary }]}>
+            {formattedDate}
+          </Text>
         </View>
+        <Text style={styles.emoji}>
+          {getSentimentEmoji(item.insights?.sentiment?.label)}
+        </Text>
+      </View>
+
+      <Text style={[styles.content, { color: theme.text }]} numberOfLines={2}>
+        {item.content}
+      </Text>
+
+      <View style={styles.footer}>
+        {item.insights?.topics && item.insights.topics.length > 0 && (
+          <View style={[styles.topicTag, { backgroundColor: isDark ? 'rgba(124, 58, 237, 0.2)' : '#f3e8ff' }]}>
+            <Text style={[styles.topicText, { color: isDark ? '#ddd6fe' : '#7c3aed' }]}>
+              {item.insights.topics[0]}
+            </Text>
+          </View>
+        )}
+        {/* Decoration Icon */}
+        <ArrowRight size={16} color={theme.textSecondary} style={{ opacity: 0.5 }} />
       </View>
     </View>
   );
 };
 
 const RecentEntriesList = ({ entries }) => {
-  const { theme } = useTheme();
-  const styles = getStyles(theme);
+  const { theme, isDark } = useTheme();
 
   if (!entries || entries.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Your journal is empty.</Text>
-        <Text style={styles.emptySubText}>Create your first entry to see it here!</Text>
+        <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+          <BookHeart size={32} color={theme.textSecondary} />
+        </View>
+        <Text style={[styles.emptyText, { color: theme.text }]}>
+          Your journal is waiting
+        </Text>
+        <Text style={[styles.emptySubText, { color: theme.textSecondary }]}>
+          Reflect on your day to start your journey.
+        </Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <BookText size={20} color={theme.primary} />
-        <Text style={styles.header}>Recent Entries</Text>
-      </View>
-      <FlatList
-        data={entries}
-        renderItem={({ item }) => <EntryCard item={item} />}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+      {entries.map((item) => (
+        <EntryCard 
+          key={item.id} 
+          item={item} 
+          isDark={isDark} 
+          theme={theme} 
+        />
+      ))}
     </View>
   );
 };
 
-const getStyles = (theme) => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
-    marginHorizontal: 16,
+    gap: 12,
   },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  header: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.text,
-    marginLeft: 8,
-  },
-  cardContainer: {
-    backgroundColor: theme.card,
-    borderRadius: 8,
+  card: {
+    borderRadius: 16,
     padding: 16,
+    borderWidth: 1,
+    // Subtle shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
   },
-  cardContent: {
-    flex: 1,
-  },
-  cardText: {
-    fontSize: 14,
-    color: theme.textSecondary,
-    lineHeight: 20,
-  },
-  cardFooter: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
     alignItems: 'center',
+    marginBottom: 8,
   },
-  cardDate: {
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dateText: {
     fontSize: 12,
-    color: theme.textSecondary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  cardEmoji: {
+  emoji: {
     fontSize: 16,
   },
-  separator: {
-    height: 8,
+  content: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 12,
+    opacity: 0.9,
   },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  topicTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  topicText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  // Empty State
   emptyContainer: {
-    marginTop: 40,
+    marginTop: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 40,
+    opacity: 0.7,
+  },
+  iconCircle: {
     padding: 20,
+    borderRadius: 50,
+    marginBottom: 16,
   },
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.textSecondary,
+    marginBottom: 4,
   },
   emptySubText: {
     fontSize: 14,
-    color: theme.textSecondary,
-    marginTop: 4,
   },
 });
 
