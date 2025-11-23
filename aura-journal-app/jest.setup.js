@@ -24,5 +24,21 @@ jest.mock('expo-haptics', () => ({
   },
 }));
 
+// Mock @gorhom/bottom-sheet
+jest.mock('@gorhom/bottom-sheet', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    BottomSheetModal: React.forwardRef((props, ref) => {
+      const { children } = props;
+      return React.createElement('View', { testID: 'bottom-sheet-modal' }, children);
+    }),
+    BottomSheetModalProvider: ({ children }) => children,
+    BottomSheetBackdrop: (props) => {
+      return React.createElement('View', { testID: 'bottom-sheet-backdrop' });
+    },
+  };
+});
+
 // Silence the warning: Animated: `useNativeDriver` is not supported
 jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
