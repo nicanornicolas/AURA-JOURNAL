@@ -49,7 +49,7 @@ services:
       mongo:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      - "8001:8100"
     env_file:
       - .env
     environment:
@@ -58,7 +58,7 @@ services:
       # Mount code to /app/app (matches Dockerfile structure)
       - ./services/entry_ingestor/app:/app/app
       - ./shared:/app/shared
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8100 --reload
     restart: unless-stopped
 
   # 2. NLP Agent (Host: 8001)
@@ -73,8 +73,8 @@ services:
       mongo:
         condition: service_healthy
     ports:
-      # Maps Host 8001 -> Container 8000 (NLP listens on 8000 internally)
-      - "8001:8000" 
+      # Maps Host 8002 -> Container 8200 (NLP listens on 8200 internally)
+      - "8002:8200" 
     env_file:
       - .env
     environment:
@@ -84,7 +84,7 @@ services:
       - ./services/nlp_agent/app:/app/app
       - ./shared:/app/shared
       - ${GCP_KEYFILE_PATH}:/gcp-key.json:ro
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8200 --reload
     restart: unless-stopped
 
   # 3. Auth Service (Host: 8002)
@@ -97,8 +97,8 @@ services:
       db:
         condition: service_healthy
     ports:
-      # Maps Host 8002 -> Container 8001 (Auth listens on 8001 internally)
-      - "8002:8001"
+      # Maps Host 8003 -> Container 8300 (Auth listens on 8300 internally)
+      - "8003:8300"
     env_file:
       - .env
     environment:
@@ -110,7 +110,7 @@ services:
       # If Auth needs shared:
       # - ./shared:/app/shared
     # Command matches the Dockerfile (main:app)
-    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+    command: uvicorn main:app --host 0.0.0.0 --port 8300 --reload
     restart: unless-stopped
 
 volumes:

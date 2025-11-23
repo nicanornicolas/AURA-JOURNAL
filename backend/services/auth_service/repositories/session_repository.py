@@ -17,11 +17,8 @@ try:
     from .base_repository import BaseRepository
 except ImportError:
     # Fallback to absolute imports (when used directly)
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from database import UserSession
-    from .base_repository import BaseRepository
+    from repositories.base_repository import BaseRepository
 
 
 class SessionRepository(BaseRepository[UserSession, Dict[str, Any], Dict[str, Any]]):

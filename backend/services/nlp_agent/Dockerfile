@@ -1,5 +1,5 @@
 # ---- Base Stage ----
-FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim as base
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS base
 
 # 1. Define the environment location OUTSIDE of /app
 # This ensures docker-compose volumes (mounted at /app) don't hide your installed packages.
@@ -14,13 +14,21 @@ FROM base as builder
 
 # 3. Copy dependency definitions
 # (Assumes build context is the project root, per your docker-compose)
-COPY pyproject.toml uv.lock ./
+# Create directory structure to match path references in pyproject.toml
+# The pyproject.toml references ../../shared, so we need services/nlp_agent/ structure
+RUN mkdir -p /app/services/nlp_agent
+# Copy service-specific pyproject.toml and uv.lock (contains loguru and other deps)
+COPY ./services/nlp_agent/pyproject.toml ./services/nlp_agent/uv.lock /app/services/nlp_agent/
+# Copy shared directory for the aura-journal-shared dependency (at /app/shared to match ../../shared path)
+COPY ./shared /app/shared
 
-# 4. Install dependencies
+# 4. Install dependencies from the service directory
 # FIX: Removed the syntax error space in 'target'
 # We use --no-install-project because we just want the libs in /venv
+WORKDIR /app/services/nlp_agent
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
+WORKDIR /app
 
 # ---- Final Stage ----
 FROM base as final
@@ -57,9 +65,9 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH="/app"
 
 # 11. Run
-EXPOSE 8000
+EXPOSE 8200
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8200/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8200"]

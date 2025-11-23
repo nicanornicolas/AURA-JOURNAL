@@ -12,9 +12,9 @@ import uvicorn
 from typing import Optional
 import os
 
-from .auth_handler import AuthHandler
-from .models import UserCreate, UserLogin, UserResponse, TokenResponse
-from .database import get_db_session
+from auth_handler import AuthHandler
+from models import UserCreate, UserLogin, UserResponse, TokenResponse
+from database import get_db_session
 from sqlalchemy.orm import Session
 
 # Initialize FastAPI app

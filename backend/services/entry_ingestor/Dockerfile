@@ -1,65 +1,75 @@
 # ---- Base Stage ----
-# Use the new official standard base image for uv + Python.
-FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim as base
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS base
 
-# Set the working directory for all subsequent stages.
+# 1. Define the environment location OUTSIDE of /app
+# This ensures docker-compose volumes (mounted at /app) don't hide your installed packages.
+ENV UV_PROJECT_ENVIRONMENT="/venv"
+ENV PATH="/venv/bin:$PATH"
+
+# 2. Set working directory
 WORKDIR /app
 
-
 # ---- Builder Stage ----
-# This stage securely builds the application and all dependencies.
 FROM base as builder
 
-# 1. Install system-level dependencies required by Python packages (e.g., for psycopg2).
-RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev build-essential && apt-get clean && rm -rf /var/lib/apt/lists/*
+# 3. Install system-level dependencies required by Python packages (e.g., for psycopg2).
+RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev build-essential && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 2. Copy shared module first (for better layer caching)
-COPY ../../shared /shared
+# 4. Copy dependency definitions
+# (Assumes build context is the project root, per your docker-compose)
+# Create directory structure to match path references in pyproject.toml
+# The pyproject.toml references ../../shared, so we need services/entry_ingestor/ structure
+RUN mkdir -p /app/services/entry_ingestor
+# Copy service-specific pyproject.toml and uv.lock (contains loguru and other deps)
+COPY ./services/entry_ingestor/pyproject.toml ./services/entry_ingestor/uv.lock /app/services/entry_ingestor/
+# Copy shared directory for the aura-journal-shared dependency (at /app/shared to match ../../shared path)
+COPY ./shared /app/shared
 
-# 3. Copy all project code into the builder.
-COPY . .
-
-# 4. Install Python dependencies into a virtual environment.
-# This uses BuildKit's advanced mounting to keep layers clean and leverage caching.
-# It installs dependencies first, without the project code.
+# 5. Install dependencies from the service directory
+# We use --no-install-project because we just want the libs in /venv
+WORKDIR /app/services/entry_ingestor
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    uv sync --locked --no-install-project --no-dev
-
-# 5. Install the project code itself into the virtual environment.
-# This creates a separate, small layer that only changes when your code changes.
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
-
+    uv sync --frozen --no-install-project --no-dev
+WORKDIR /app
 
 # ---- Final Stage ----
-# This stage creates the final, lean, and secure production image.
 FROM base as final
 
-# 1. Install only RUNTIME system dependencies and create a non-root user.
-RUN apt-get update && apt-get install -y --no-install-recommends libpq5 && \
+# 6. Install Runtime Dependencies (Curl is needed for the healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5 ca-certificates curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     useradd --system --create-home --shell /bin/bash appuser
 
-# 2. Copy the fully built application (code + .venv) from the builder stage.
-COPY --from=builder /app /app
+# 7. Copy the installed Virtual Environment from builder
+COPY --from=builder /venv /venv
 
-# 3. Set ownership and switch to the non-root user for security.
-RUN chown -R appuser:appuser /app
+# 8. Copy Application Code
+# FIX: You must copy the code into the image, even if using volumes for dev.
+# Adjust these source paths if your Dockerfile location changes.
+# These paths assume 'docker build' is run from the PROJECT ROOT.
+COPY ./services/entry_ingestor/app /app/app
+COPY ./shared /app/shared
+
+# 9. Set ownership
+# We chown /app so the user can write temp files if needed.
+# We chown /venv so the user could theoretically update it (optional, but safe).
+RUN chown -R appuser:appuser /app /venv
+
+# 10. Switch User
 USER appuser
 
-# 4. Configure the runtime environment.
-# Add the virtual environment's executables to the PATH.
-ENV PATH="/app/.venv/bin:$PATH"
-# Standard Python container optimizations.
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# 11. Environment Config
+# We inherit PATH="/venv/bin:$PATH" from the Base stage.
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+# Ensure Python finds the shared module and app module
+ENV PYTHONPATH="/app"
 
-# 5. Expose port, define healthcheck, and run the application.
-EXPOSE 8000
+# 12. Run
+EXPOSE 8100
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8100/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100"]

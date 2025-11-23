@@ -15,9 +15,9 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from .database import User, UserSession
-from .models import UserCreate, UserLogin, TokenResponse, TokenPayload
-from .repositories import UserRepository, SessionRepository
+from database import User, UserSession
+from models import UserCreate, UserLogin, TokenResponse, TokenPayload
+from repositories import UserRepository, SessionRepository
 
 class AuthHandler:
     """

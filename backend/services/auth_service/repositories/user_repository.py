@@ -18,12 +18,9 @@ try:
     from .base_repository import BaseRepository
 except ImportError:
     # Fallback to absolute imports (when used directly)
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from database import User
     from models import UserCreate, UserResponse
-    from .base_repository import BaseRepository
+    from repositories.base_repository import BaseRepository
 
 
 class UserRepository(BaseRepository[User, UserCreate, Dict[str, Any]]):
