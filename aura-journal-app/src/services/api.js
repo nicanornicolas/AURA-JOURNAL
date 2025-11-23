@@ -10,8 +10,8 @@ import axios from 'axios';
 // - macOS/Linux: Run 'ifconfig' or 'ip addr' in the terminal.
 
 // For Android Emulator, you can often use the special IP '10.0.2.2' to refer to your computer.
-const API_BASE_URL = 'http://192.168.8.100:8000';
-// Example: const API_BASE_URL = 'http://192.168.1.10:8000';
+const API_BASE_URL = 'http://192.168.8.100:8001';
+// Example: const API_BASE_URL = 'http://192.168.1.10:8001';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
