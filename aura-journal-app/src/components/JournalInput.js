@@ -65,10 +65,11 @@ const JournalInput = ({ onSave, isSaving }) => {
   const isDisabled = text.trim().length === 0 || isSaving || status === 'confirming';
 
   return (
-    <Animated.View 
+    <Animated.View
       entering={FadeInDown.delay(100).duration(600)}
-      style={[styles.wrapper, containerAnimatedStyle]}
+      style={styles.wrapper}
     >
+      <Animated.View style={containerAnimatedStyle}>
       <View style={styles.shadowWrapper}>
         {/* --- 1. Glow Gradient Background --- */}
         <LinearGradient
@@ -152,6 +153,7 @@ const JournalInput = ({ onSave, isSaving }) => {
           </View>
         </View>
       </View>
+      </Animated.View>
     </Animated.View>
   );
 };

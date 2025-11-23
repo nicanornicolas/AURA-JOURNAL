@@ -1,17 +1,33 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 
-// --- IMPORTANT: CONFIGURING THE BACKEND URL ---
-// When running in an emulator or on a real device, 'localhost' will not work
-// because it refers to the device itself, not your computer.
-// You MUST replace 'YOUR_COMPUTER_IP_ADDRESS' with your computer's actual local network IP.
+// --- BACKEND URL CONFIGURATION ---
+// Automatically detects the appropriate IP based on the platform/environment
 
-// To find your IP:
-// - Windows: Run 'ipconfig' in Command Prompt and look for 'IPv4 Address'.
-// - macOS/Linux: Run 'ifconfig' or 'ip addr' in the terminal.
+const getApiBaseUrl = () => {
+  // For Android Emulator
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8001';
+  }
 
-// For Android Emulator, you can often use the special IP '10.0.2.2' to refer to your computer.
-const API_BASE_URL = 'http://192.168.100.9:8001';
-// Example: const API_BASE_URL = 'http://192.168.1.10:8001';
+  // For iOS Simulator
+  if (Platform.OS === 'ios') {
+    return 'http://localhost:8001';
+  }
+
+  // For physical devices or web, use environment variable or fallback
+  // You can set this in your .env file or app.json
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+
+  // Fallback for development - replace with your computer's IP
+  // To find your IP: Windows: ipconfig | macOS/Linux: ifconfig
+  return 'http://192.168.8.82:8001'; // Replace with your computer's IP
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
