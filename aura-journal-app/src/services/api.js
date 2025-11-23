@@ -31,13 +31,6 @@ export const createJournalEntry = async (userId, content) => {
     const response = await apiClient.post('/entries', {
       user_id: userId,
       content: content,
-    }, {
-      onDownloadProgress: progressEvent => {
-        const xhr = progressEvent.target;
-        xhr.onerror = () => {
-          console.error('XHR Error:', xhr.status, xhr.statusText);
-        };
-      }
     });
     // Our backend is designed to return the full entry object on success,
     // which already includes the 'analysis' payload. This is perfect.
