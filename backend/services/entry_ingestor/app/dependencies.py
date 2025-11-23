@@ -37,4 +37,4 @@ def get_entry_service() -> EntryService:
 
 def get_db():
     """Get database session."""
-    return get_database_manager().get_db()
+    yield from get_database_manager().get_db()
