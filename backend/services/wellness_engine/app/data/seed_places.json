@@ -1,0 +1,192 @@
+[
+  {
+    "place_id": "seed-karura",
+    "name": "Karura Forest",
+    "category": "forest",
+    "latitude": -1.2386,
+    "longitude": 36.8344,
+    "spectrum": {
+      "cognitive_load": 1.6,
+      "biophilia": 5.4,
+      "awe": 3.0,
+      "novelty": 2.6,
+      "social_density": 2.0,
+      "trigger_warnings": [
+        "wildlife"
+      ]
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-arboretum",
+    "name": "Nairobi Arboretum",
+    "category": "garden",
+    "latitude": -1.2731,
+    "longitude": 36.8075,
+    "spectrum": {
+      "cognitive_load": 1.6,
+      "biophilia": 4.4,
+      "awe": 2.2,
+      "novelty": 2.0,
+      "social_density": 2.5,
+      "trigger_warnings": []
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-city-park",
+    "name": "City Park",
+    "category": "park",
+    "latitude": -1.2617,
+    "longitude": 36.8253,
+    "spectrum": {
+      "cognitive_load": 2.0,
+      "biophilia": 4.2,
+      "awe": 2.0,
+      "novelty": 2.4,
+      "social_density": 2.5,
+      "trigger_warnings": [
+        "wildlife"
+      ]
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-uhuru",
+    "name": "Uhuru Park",
+    "category": "park",
+    "latitude": -1.2903,
+    "longitude": 36.8171,
+    "spectrum": {
+      "cognitive_load": 2.8,
+      "biophilia": 3.0,
+      "awe": 2.4,
+      "novelty": 1.8,
+      "social_density": 4.0,
+      "trigger_warnings": [
+        "crowds",
+        "traffic"
+      ]
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-ngong-hills",
+    "name": "Ngong Hills",
+    "category": "viewpoint",
+    "latitude": -1.4,
+    "longitude": 36.64,
+    "spectrum": {
+      "cognitive_load": 2.4,
+      "biophilia": 4.6,
+      "awe": 4.8,
+      "novelty": 3.8,
+      "social_density": 1.5,
+      "trigger_warnings": [
+        "heights",
+        "steep_terrain"
+      ]
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-nnp",
+    "name": "Nairobi National Park",
+    "category": "nature_reserve",
+    "latitude": -1.3733,
+    "longitude": 36.8589,
+    "spectrum": {
+      "cognitive_load": 2.4,
+      "biophilia": 5.2,
+      "awe": 4.6,
+      "novelty": 4.4,
+      "social_density": 2.0,
+      "trigger_warnings": [
+        "wildlife"
+      ]
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-museum",
+    "name": "Nairobi National Museum",
+    "category": "museum",
+    "latitude": -1.274,
+    "longitude": 36.8146,
+    "spectrum": {
+      "cognitive_load": 3.0,
+      "biophilia": 2.2,
+      "awe": 3.0,
+      "novelty": 4.2,
+      "social_density": 3.0,
+      "trigger_warnings": [
+        "crowds"
+      ]
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-oloolua",
+    "name": "Oloolua Nature Trail",
+    "category": "trail",
+    "latitude": -1.355,
+    "longitude": 36.718,
+    "spectrum": {
+      "cognitive_load": 1.8,
+      "biophilia": 5.6,
+      "awe": 3.4,
+      "novelty": 3.2,
+      "social_density": 1.5,
+      "trigger_warnings": [
+        "deep_water",
+        "steep_terrain"
+      ]
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-gallery",
+    "name": "Nairobi Gallery",
+    "category": "gallery",
+    "latitude": -1.286,
+    "longitude": 36.825,
+    "spectrum": {
+      "cognitive_load": 2.2,
+      "biophilia": 1.4,
+      "awe": 2.6,
+      "novelty": 4.0,
+      "social_density": 2.0,
+      "trigger_warnings": []
+    },
+    "status": "seed",
+    "summary": null
+  },
+  {
+    "place_id": "seed-village-market",
+    "name": "Village Market",
+    "category": "market",
+    "latitude": -1.2297,
+    "longitude": 36.8045,
+    "spectrum": {
+      "cognitive_load": 3.8,
+      "biophilia": 2.0,
+      "awe": 1.6,
+      "novelty": 3.0,
+      "social_density": 4.2,
+      "trigger_warnings": [
+        "crowds",
+        "loud_noise"
+      ]
+    },
+    "status": "seed",
+    "summary": null
+  }
+]

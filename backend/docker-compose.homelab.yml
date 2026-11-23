@@ -1,0 +1,80 @@
+# Homelab staging stack: sized for a 6 GB RAM, 2-core Fedora box that also runs Gramps Web.
+#
+#   cp .env.homelab.example .env.homelab   # then set a real password
+#   docker compose -f docker-compose.homelab.yml --env-file .env.homelab up -d --build
+#   # or: podman-compose -f docker-compose.homelab.yml --env-file .env.homelab up -d --build
+#
+# Memory budget (approx): postgres 384 MB, entry ingestor 256 MB,
+# wellness engine 2 GB with Hugging Face models (or ~150 MB with EARS_PROVIDER=lexicon).
+# No MongoDB: insights are stored in Postgres (INSIGHT_STORE=postgres).
+#
+# Ports are published on the LAN so the Android test phone (same Wi-Fi) can reach them.
+# A tunnel (Cloudflare/Tailscale) comes later, when a domain is bought.
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    container_name: aura_homelab_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command: ["postgres", "-c", "shared_buffers=96MB", "-c", "max_connections=40"]
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5433:5432"   # local only (pipeline sync, backups); not exposed to the LAN
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 384m
+    restart: unless-stopped
+
+  wellness_engine:
+    build:
+      context: .
+      dockerfile: ./services/wellness_engine/Dockerfile
+      args:
+        EARS_EXTRAS: ${EARS_EXTRAS:-hf}
+    container_name: aura_homelab_engine
+    environment:
+      EARS_PROVIDER: ${EARS_PROVIDER:-auto}
+      PLACES_SOURCE: ${PLACES_SOURCE:-file}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      OMP_NUM_THREADS: "2"
+      TOKENIZERS_PARALLELISM: "false"
+    volumes:
+      - hf_models:/models   # model cache survives rebuilds (~0.9 GB)
+    ports:
+      - "8300:8300"
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 2g
+    restart: unless-stopped
+
+  entry_ingestor:
+    build:
+      context: .
+      dockerfile: ./services/entry_ingestor/Dockerfile
+    container_name: aura_homelab_ingestor
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      INSIGHT_STORE: postgres
+      NLP_AGENT_URL: http://wellness_engine:8300/analyze
+      LOG_LEVEL: INFO
+    ports:
+      - "8001:8100"
+    depends_on:
+      db:
+        condition: service_healthy
+      wellness_engine:
+        condition: service_started
+    mem_limit: 256m
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  hf_models:

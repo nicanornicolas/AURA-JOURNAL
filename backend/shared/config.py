@@ -28,7 +28,10 @@ class DatabaseSettings(BaseSettings):
 
     # Connection URLs for relational and NoSQL databases
     database_url: str
-    mongodb_url: str
+    # Optional: only needed when INSIGHT_STORE=mongo. Postgres is the default
+    # so the homelab can run without a MongoDB container.
+    mongodb_url: str = ""
+    insight_store: str = "postgres"  # postgres | mongo
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +48,8 @@ class ServiceSettings(BaseSettings):
     model_config = ConfigDict(env_file=".env")
 
     # Default endpoint for the NLP microservice used by the backend
-    nlp_agent_url: str = "http://localhost:8001/analyze"
+    # Points at the Wellness Engine's Aura-compatible /analyze endpoint.
+    nlp_agent_url: str = "http://localhost:8300/analyze"
 
     # Logging verbosity (e.g., "DEBUG", "INFO", "WARNING", "ERROR")
     log_level: str = "INFO"

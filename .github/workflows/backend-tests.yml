@@ -1,0 +1,33 @@
+# GitHub only runs workflows from the repository root, so the older
+# backend/.github/workflows/ci.yml never ran. This one does.
+name: Backend tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["backend/**", ".github/workflows/backend-tests.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          uv venv
+          uv pip install fastapi "uvicorn[standard]" pydantic pydantic-settings sqlalchemy \
+            psycopg2-binary pymongo httpx pyyaml loguru pytest pytest-mock pyairtable ruff
+      - name: Lint new modules
+        run: .venv/bin/ruff check --select E,W,F,I,B,UP --ignore E501,B008 services/wellness_engine pipelines shared/mental_spectrum.py
+      - name: Test
+        env:
+          DATABASE_URL: sqlite://
+          PYTHONPATH: .
+        run: .venv/bin/pytest pipelines services/wellness_engine/tests services/entry_ingestor/tests tests -o addopts="" -q

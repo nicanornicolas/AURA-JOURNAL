@@ -1,5 +1,6 @@
 """Business logic for the entry ingestor service."""
 
+import uuid
 from typing import Optional, Protocol
 
 import httpx
@@ -7,7 +8,7 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 from shared import AnalysisPayload, EntryCreate, TextPayload
-from .models import JournalEntry
+from .models import JournalEntry, JournalInsight
 
 
 class NLPClient(Protocol):
@@ -29,7 +30,7 @@ class InsightStorage(Protocol):
 class HTTPNLPClient:
     """HTTP-based NLP client implementation."""
     
-    def __init__(self, nlp_url: str, timeout: float = 5.0) -> None:
+    def __init__(self, nlp_url: str, timeout: float = 15.0) -> None:
         self.nlp_url = nlp_url
         self.timeout = timeout
     
@@ -49,6 +50,29 @@ class HTTPNLPClient:
         except Exception as e:
             logger.error(f"Unexpected error calling NLP service: {e}")
             return None
+
+
+class PostgresInsightStorage:
+    """Stores insights in Postgres (JSONB). Default: one database to run on the homelab."""
+
+    def __init__(self, session_factory) -> None:
+        self.session_factory = session_factory
+
+    def store_insight(self, entry_id: str, user_id: str, analysis: AnalysisPayload) -> None:
+        session = self.session_factory()
+        try:
+            session.merge(JournalInsight(
+                entry_id=uuid.UUID(entry_id),
+                user_id=uuid.UUID(user_id),
+                analysis=analysis.model_dump(mode="json"),
+            ))
+            session.commit()
+            logger.info(f"Stored insight for entry {entry_id}")
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to store insight: {e}")
+        finally:
+            session.close()
 
 
 class MongoInsightStorage:

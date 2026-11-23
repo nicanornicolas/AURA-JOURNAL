@@ -13,10 +13,40 @@ class SentimentResult(BaseModel):
     score: float
 
 
+class EmotionScore(BaseModel):
+    """One detected emotion with its confidence (0-1)."""
+    label: str
+    score: float
+
+
+class NeedState(BaseModel):
+    """A wellness need state (e.g. overwhelmed, drained, stuck) with strength 0-1."""
+    state: str
+    score: float
+    evidence: List[str] = Field(default_factory=list)
+
+
+class SafetySignal(BaseModel):
+    """Result of the crisis-language safety screen."""
+    flagged: bool = False
+    level: str = "none"  # none | concern | crisis
+    matched: List[str] = Field(default_factory=list)
+    resources: List[str] = Field(default_factory=list)
+
+
 class AnalysisPayload(BaseModel):
-    """NLP analysis payload containing sentiment and topics."""
+    """NLP analysis payload.
+
+    ``sentiment`` and ``topics`` are the original contract used by the mobile app.
+    The remaining fields are added by the Wellness Engine and are optional so
+    older clients keep working.
+    """
     sentiment: SentimentResult
     topics: List[str]
+    language: Optional[str] = None
+    emotions: List[EmotionScore] = Field(default_factory=list)
+    needs: List[NeedState] = Field(default_factory=list)
+    safety: Optional[SafetySignal] = None
 
 
 class TextPayload(BaseModel):
