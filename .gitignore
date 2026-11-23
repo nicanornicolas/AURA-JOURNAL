@@ -1,1 +1,10 @@
 .kiro
+# Python build/test artefacts and local secrets
+__pycache__/
+*.py[cod]
+*.db
+.env
+!.env.example
+data/serenescapes/
+backend/data/
+.env.homelab
