@@ -4,6 +4,11 @@
 #   docker compose -f docker-compose.homelab.yml --env-file .env.homelab up -d --build
 #   # or: podman-compose -f docker-compose.homelab.yml --env-file .env.homelab up -d --build
 #
+# Reboots: services use `restart: always` because rootless Podman's boot hook
+# (podman-restart.service) only restarts containers with that policy. Enable it once:
+#   systemctl --user enable podman-restart.service
+# (needs `loginctl enable-linger $USER`, already done by the homelab prep script).
+#
 # Memory budget (approx): postgres 384 MB, entry ingestor 256 MB,
 # wellness engine 2 GB with Hugging Face models (or ~150 MB with EARS_PROVIDER=lexicon).
 # No MongoDB: insights are stored in Postgres (INSIGHT_STORE=postgres).
@@ -30,7 +35,7 @@ services:
       timeout: 5s
       retries: 5
     mem_limit: 384m
-    restart: unless-stopped
+    restart: always
 
   wellness_engine:
     build:
@@ -53,7 +58,7 @@ services:
       db:
         condition: service_healthy
     mem_limit: 2g
-    restart: unless-stopped
+    restart: always
 
   entry_ingestor:
     build:
@@ -73,7 +78,7 @@ services:
       wellness_engine:
         condition: service_started
     mem_limit: 256m
-    restart: unless-stopped
+    restart: always
 
 volumes:
   pg_data:
