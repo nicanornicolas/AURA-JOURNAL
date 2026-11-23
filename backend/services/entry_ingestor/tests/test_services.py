@@ -186,3 +186,31 @@ class TestEntryService:
         assert result == mock_db_entry
         mock_nlp_client.analyze_text.assert_called_once_with(entry_data.content)
         mock_insight_storage.store_insight.assert_not_called()
+
+
+class TestPostgresInsightStorage:
+    """PostgresInsightStorage replaces Mongo on the homelab."""
+
+    def _analysis(self):
+        return AnalysisPayload(sentiment=SentimentResult(label="NEGATIVE", score=-0.6), topics=["drained"])
+
+    def test_store_insight_merges_and_commits(self):
+        from services.entry_ingestor.app.services import PostgresInsightStorage
+        session = Mock()
+        storage = PostgresInsightStorage(lambda: session)
+        entry_id, user_id = uuid.uuid4(), uuid.uuid4()
+        storage.store_insight(str(entry_id), str(user_id), self._analysis())
+        saved = session.merge.call_args[0][0]
+        assert saved.entry_id == entry_id
+        assert saved.analysis["topics"] == ["drained"]
+        session.commit.assert_called_once()
+        session.close.assert_called_once()
+
+    def test_store_insight_rolls_back_on_error(self):
+        from services.entry_ingestor.app.services import PostgresInsightStorage
+        session = Mock()
+        session.commit.side_effect = RuntimeError("db down")
+        PostgresInsightStorage(lambda: session).store_insight(
+            str(uuid.uuid4()), str(uuid.uuid4()), self._analysis())
+        session.rollback.assert_called_once()
+        session.close.assert_called_once()

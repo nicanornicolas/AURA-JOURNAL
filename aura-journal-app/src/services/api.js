@@ -5,32 +5,26 @@ import { Platform } from 'react-native';
 // Automatically detects the appropriate IP based on the platform/environment
 
 const getApiBaseUrl = () => {
-  // For Android Emulator
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8001';
-  }
-
-  // For iOS Simulator
-  if (Platform.OS === 'ios') {
-    return 'http://localhost:8001';
-  }
-
-  // For physical devices or web, use environment variable or fallback
-  // You can set this in your .env file or app.json
+  // 1. An explicit URL always wins (physical phones, homelab, staging).
+  //    Set EXPO_PUBLIC_API_URL in .env, e.g. http://192.168.1.50:8001 for the homelab.
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envUrl) {
-    return envUrl;
+    return envUrl.replace(/\/$/, '');
   }
 
-  // Fallback for development - replace with your computer's IP
-  // To find your IP: Windows: ipconfig | macOS/Linux: ifconfig
-  return 'http://192.168.8.82:8001'; // Replace with your computer's IP
+  // 2. Emulator / simulator defaults for local development only.
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8001'; // Android emulator -> host machine
+  }
+  return 'http://localhost:8001'; // iOS simulator and web
 };
 
 const API_BASE_URL = getApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  // CPU-only emotion models on the homelab can take a few seconds per entry.
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
   },

@@ -1,0 +1,9 @@
+{"elements": [
+ {"type": "way", "id": 1001, "center": {"lat": -1.2386, "lon": 36.8344}, "tags": {"name": "Karura Forest", "landuse": "forest", "fee": "yes"}},
+ {"type": "node", "id": 2002, "lat": -1.4, "lon": 36.64, "tags": {"name": "Ngong Hills Viewpoint", "tourism": "viewpoint"}},
+ {"type": "way", "id": 3003, "center": {"lat": -1.274, "lon": 36.8146}, "tags": {"name": "Nairobi National Museum", "tourism": "museum", "wheelchair": "yes"}},
+ {"type": "node", "id": 4004, "lat": -1.29, "lon": 36.82, "tags": {"amenity": "bench"}},
+ {"type": "way", "id": 5005, "center": {"lat": -1.29, "lon": 36.82}, "tags": {"name": "Some Shop", "shop": "supermarket"}},
+ {"type": "way", "id": 1001, "center": {"lat": -1.2386, "lon": 36.8344}, "tags": {"name": "Karura Forest", "landuse": "forest"}},
+ {"type": "relation", "id": 6006, "center": {"lat": -1.355, "lon": 36.718}, "tags": {"name": "Oloolua River Trail", "route": "hiking"}}
+]}

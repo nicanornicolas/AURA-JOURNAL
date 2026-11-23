@@ -1,0 +1,36 @@
+[project]
+name = "wellness-engine"
+version = "0.1.0"
+description = "SereneScapes Wellness Engine: Ears (emotions, EN/SW) and Brain (needs profile, place ranking)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.116.1",
+    "uvicorn[standard]>=0.35.0",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "pyyaml>=6.0.2",
+    "loguru>=0.7.2",
+    "sqlalchemy>=2.0.41",
+    "psycopg2-binary>=2.9.10",
+    "aura-journal-shared",
+]
+
+[project.optional-dependencies]
+# Hugging Face models (CPU). Install torch from the CPU index to keep the image small:
+#   uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+hf = [
+    "transformers>=4.46,<5",
+    "sentencepiece>=0.2.0",
+    "sacremoses>=0.1.1",
+]
+dev = ["pytest>=8.4.1", "httpx>=0.28.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+aura-journal-shared = { path = "../../shared", editable = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

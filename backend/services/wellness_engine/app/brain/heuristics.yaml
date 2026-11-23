@@ -1,0 +1,76 @@
+# SereneScapes Psychological Heuristics Corpus (Dataset 2, "the How").
+#
+# Maps each need state detected by Ears to the Mental Spectrum it calls for.
+#   target: the ideal score on that field (same scale as shared/mental_spectrum.py)
+#   weight: how much that field matters for this state (0-1)
+# Edit freely: the engine reloads this file on restart. Keep a note of why a
+# rule changed so the feedback loop (Dataset 3) can be compared against it.
+version: 1
+
+fields:
+  cognitive_load: {low: "Low mental effort", high: "Mentally engaging"}
+  biophilia: {low: "Little nature", high: "Deeply natural"}
+  awe: {low: "Intimate scale", high: "Awe-inspiring"}
+  novelty: {low: "Familiar", high: "Something new"}
+  social_density: {low: "Quiet, few people", high: "Lively, around people"}
+
+need_states:
+  overwhelmed:
+    why: "Low cognitive load and few people give an overloaded mind room to settle (Attention Restoration Theory)."
+    targets:
+      cognitive_load: {target: 1.5, weight: 1.0}
+      social_density: {target: 1.5, weight: 0.8}
+      biophilia: {target: 4.5, weight: 0.6}
+  drained:
+    why: "Nature with gentle activation restores energy without asking for more effort."
+    targets:
+      biophilia: {target: 4.5, weight: 1.0}
+      cognitive_load: {target: 2.0, weight: 0.6}
+      social_density: {target: 2.0, weight: 0.4}
+  stuck:
+    why: "Novelty and awe break routine and help a stuck mind see things from a new angle."
+    targets:
+      novelty: {target: 4.5, weight: 1.0}
+      awe: {target: 4.0, weight: 0.8}
+      cognitive_load: {target: 3.0, weight: 0.2}
+  lonely:
+    why: "Gentle company, people nearby without pressure to perform, eases loneliness."
+    targets:
+      social_density: {target: 3.5, weight: 1.0}
+      cognitive_load: {target: 2.5, weight: 0.4}
+      biophilia: {target: 3.0, weight: 0.3}
+  anxious:
+    why: "Quiet, natural, predictable places lower arousal (biophilia and soft fascination)."
+    targets:
+      social_density: {target: 1.5, weight: 1.0}
+      cognitive_load: {target: 1.5, weight: 0.8}
+      biophilia: {target: 4.5, weight: 0.8}
+  restless:
+    why: "Space to move and a sense of scale lets restless energy out."
+    targets:
+      awe: {target: 4.0, weight: 0.8}
+      biophilia: {target: 4.0, weight: 0.6}
+      novelty: {target: 3.5, weight: 0.5}
+  low:
+    why: "Nature and moments of awe lift mood; low crowds avoid social pressure."
+    targets:
+      biophilia: {target: 4.5, weight: 0.8}
+      awe: {target: 3.5, weight: 0.6}
+      social_density: {target: 2.5, weight: 0.4}
+  curious:
+    why: "Feed curiosity with somewhere new."
+    targets:
+      novelty: {target: 4.5, weight: 1.0}
+      awe: {target: 3.5, weight: 0.5}
+  content:
+    why: "Keep the good mood going somewhere pleasant."
+    targets:
+      biophilia: {target: 3.5, weight: 0.4}
+      novelty: {target: 3.5, weight: 0.4}
+
+# Used when Ears finds no clear need (e.g. a neutral entry).
+default:
+  why: "A calm, green place is a safe default."
+  targets:
+    biophilia: {target: 4.0, weight: 0.5}
+    cognitive_load: {target: 2.0, weight: 0.5}

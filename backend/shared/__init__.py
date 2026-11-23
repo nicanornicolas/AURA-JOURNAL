@@ -4,6 +4,9 @@ from .config import DatabaseSettings, ServiceSettings, GCPSettings
 from .database import DatabaseManager
 from .schemas import (
     AnalysisPayload,
+    EmotionScore,
+    NeedState,
+    SafetySignal,
     Entry,
     EntryCreate,
     HealthResponse,
@@ -17,6 +20,9 @@ __all__ = [
     "GCPSettings",
     "DatabaseManager",
     "AnalysisPayload",
+    "EmotionScore",
+    "NeedState",
+    "SafetySignal",
     "Entry",
     "EntryCreate",
     "HealthResponse",

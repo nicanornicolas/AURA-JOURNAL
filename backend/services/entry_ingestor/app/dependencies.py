@@ -3,7 +3,13 @@
 from functools import lru_cache
 
 from shared import DatabaseSettings, ServiceSettings, DatabaseManager
-from .services import EntryService, HTTPNLPClient, MongoInsightStorage
+from .services import (
+    EntryService,
+    HTTPNLPClient,
+    InsightStorage,
+    MongoInsightStorage,
+    PostgresInsightStorage,
+)
 
 
 @lru_cache()
@@ -30,7 +36,11 @@ def get_entry_service() -> EntryService:
     service_settings = get_service_settings()
     
     nlp_client = HTTPNLPClient(service_settings.nlp_agent_url)
-    insight_storage = MongoInsightStorage(db_manager.mongo_db)
+    insight_storage: InsightStorage
+    if get_database_settings().insight_store == "mongo":
+        insight_storage = MongoInsightStorage(db_manager.mongo_db)
+    else:
+        insight_storage = PostgresInsightStorage(db_manager.session_local)
     
     return EntryService(nlp_client, insight_storage)
 
