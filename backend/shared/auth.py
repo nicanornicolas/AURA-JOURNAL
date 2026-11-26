@@ -59,6 +59,8 @@ def verify_access_token(token: str, secret: str, skew: int = 30, now: float | No
         signature = _b64decode(sig_b64)
     except (ValueError, json.JSONDecodeError) as e:
         raise AuthError("malformed token") from e
+    if not isinstance(header, dict) or not isinstance(payload, dict):
+        raise AuthError("malformed token")
 
     if header.get("alg") != "HS256":
         raise AuthError("unsupported algorithm")  # blocks alg=none and key-confusion tricks

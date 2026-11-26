@@ -45,6 +45,15 @@ def test_rejects_alg_none():
         verify_access_token(token, SECRET)
 
 
+@pytest.mark.parametrize("header", [[1], "HS256", 42, None])
+def test_non_object_json_is_rejected_not_a_crash(header):
+    import base64
+    import json
+    enc = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).rstrip(b"=").decode()  # noqa: E731
+    with pytest.raises(AuthError, match="malformed"):
+        verify_access_token(f"{enc(header)}.{enc({})}.{enc('sig')}", SECRET)
+
+
 def test_compatible_with_auth_service_tokens(monkeypatch):
     """Tokens from the real auth service (python-jose) verify with the shared stdlib verifier."""
     pytest.importorskip("jose")
