@@ -1,6 +1,8 @@
 """Business logic for the entry ingestor service."""
 
 import uuid
+from collections import Counter
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Protocol
 
 import httpx
@@ -145,3 +147,115 @@ class EntryService:
             logger.info(f"Created entry {db_entry.entry_id} without analysis")
         
         return db_entry
+
+    # ------------------------------------------------------------------
+    # Reads and edits. Every query is scoped to the owner's user_id, and an
+    # entry that belongs to someone else is reported as "not found".
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _attach_analysis(db: Session, entries: list[JournalEntry]) -> list[JournalEntry]:
+        ids = [e.entry_id for e in entries]
+        found = {}
+        if ids:
+            rows = db.query(JournalInsight).filter(JournalInsight.entry_id.in_(ids)).all()
+            found = {r.entry_id: r.analysis for r in rows}
+        for e in entries:
+            raw = found.get(e.entry_id)
+            setattr(e, "analysis", AnalysisPayload(**raw) if raw else None)
+        return entries
+
+    def list_entries(
+        self, db: Session, user_id: uuid.UUID, limit: int = 20, offset: int = 0
+    ) -> tuple[list[JournalEntry], int]:
+        q = db.query(JournalEntry).filter(JournalEntry.user_id == user_id)
+        total = q.count()
+        rows = (
+            q.order_by(JournalEntry.timestamp.desc(), JournalEntry.entry_id)
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        return self._attach_analysis(db, rows), total
+
+    def get_entry(self, db: Session, user_id: uuid.UUID, entry_id: uuid.UUID) -> Optional[JournalEntry]:
+        row = (
+            db.query(JournalEntry)
+            .filter(JournalEntry.entry_id == entry_id, JournalEntry.user_id == user_id)
+            .first()
+        )
+        return self._attach_analysis(db, [row])[0] if row else None
+
+    def update_entry(
+        self, db: Session, user_id: uuid.UUID, entry_id: uuid.UUID, content: str
+    ) -> Optional[JournalEntry]:
+        row = (
+            db.query(JournalEntry)
+            .filter(JournalEntry.entry_id == entry_id, JournalEntry.user_id == user_id)
+            .first()
+        )
+        if not row:
+            return None
+        row.content = content
+        db.commit()
+        db.refresh(row)
+        analysis = self.nlp_client.analyze_text(content)
+        if analysis:
+            self.insight_storage.store_insight(str(row.entry_id), str(row.user_id), analysis)
+            setattr(row, "analysis", analysis)
+            return row
+        # Analysis failed: drop the stale insight rather than show one for old text.
+        db.query(JournalInsight).filter(JournalInsight.entry_id == entry_id).delete()
+        db.commit()
+        setattr(row, "analysis", None)
+        return row
+
+    def delete_entry(self, db: Session, user_id: uuid.UUID, entry_id: uuid.UUID) -> bool:
+        row = (
+            db.query(JournalEntry)
+            .filter(JournalEntry.entry_id == entry_id, JournalEntry.user_id == user_id)
+            .first()
+        )
+        if not row:
+            return False
+        db.query(JournalInsight).filter(JournalInsight.entry_id == entry_id).delete()
+        db.delete(row)
+        db.commit()
+        return True
+
+    def mood_trends(self, db: Session, user_id: uuid.UUID, days: int = 30) -> dict:
+        """Daily mood (average sentiment score) plus the most frequent needs and emotions."""
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        rows = (
+            db.query(JournalEntry.timestamp, JournalInsight.analysis)
+            .join(JournalInsight, JournalInsight.entry_id == JournalEntry.entry_id, isouter=True)
+            .filter(JournalEntry.user_id == user_id, JournalEntry.timestamp >= since)
+            .order_by(JournalEntry.timestamp)
+            .all()
+        )
+        daily: dict[str, list[float]] = {}
+        counts: dict[str, int] = {}
+        needs: Counter[str] = Counter()
+        emotions: Counter[str] = Counter()
+        for ts, analysis in rows:
+            day = ts.date().isoformat()
+            counts[day] = counts.get(day, 0) + 1
+            if not analysis:
+                continue
+            daily.setdefault(day, []).append(float(analysis["sentiment"]["score"]))
+            needs.update(n["state"] for n in analysis.get("needs", []) if n.get("score", 0) >= 0.4)
+            emotions.update(e["label"] for e in analysis.get("emotions", [])[:3] if e["label"] != "neutral")
+        return {
+            "days": days,
+            "entries": sum(counts.values()),
+            "daily": [
+                {
+                    "date": d,
+                    "entries": counts[d],
+                    "mood": round(sum(daily[d]) / len(daily[d]), 3) if d in daily else None,
+                }
+                for d in sorted(counts)
+            ],
+            "top_needs": [{"state": s, "count": c} for s, c in needs.most_common(5)],
+            "top_emotions": [{"label": s, "count": c} for s, c in emotions.most_common(5)],
+        }

@@ -9,7 +9,8 @@ from fastapi.testclient import TestClient
 
 from shared import Entry, AnalysisPayload, SentimentResult
 from services.entry_ingestor.app.main import app
-from services.entry_ingestor.app.dependencies import get_db, get_entry_service
+from shared.auth import AuthSettings
+from services.entry_ingestor.app.dependencies import get_auth_settings, get_db, get_entry_service
 from services.entry_ingestor.app.models import JournalEntry
 
 
@@ -30,6 +31,9 @@ def test_client(mock_db_session, mock_entry_service):
     """Test client with overridden dependencies."""
     app.dependency_overrides[get_db] = lambda: mock_db_session
     app.dependency_overrides[get_entry_service] = lambda: mock_entry_service
+    # These tests exercise the legacy body user_id path (dev mode). Token auth is
+    # covered in test_entries_api.py.
+    app.dependency_overrides[get_auth_settings] = lambda: AuthSettings(auth_required=False)
     
     yield TestClient(app)
     
@@ -134,4 +138,4 @@ class TestEntryEndpoints:
         data = response.json()
         assert data["status"] == "ok"
         assert data["service"] == "entry-ingestor"
-        assert data["version"] == "1.0.0"
+        assert data["version"] == "1.1.0"

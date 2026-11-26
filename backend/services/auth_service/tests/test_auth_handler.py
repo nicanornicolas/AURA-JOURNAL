@@ -9,15 +9,18 @@ import pytest
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from unittest.mock import Mock
 
-from ..auth_handler import AuthHandler
-from ..database import Base, User, UserSession
-from ..models import UserCreate, UserLogin
+from auth_handler import AuthHandler
+from database import Base, User, UserSession
+from models import UserCreate, UserLogin
 
 # Test database setup
-TEST_DATABASE_URL = "sqlite:///./test_auth.db"
-test_engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+TEST_DATABASE_URL = "sqlite://"  # in-memory: no stray .db files
+test_engine = create_engine(
+    TEST_DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=StaticPool
+)
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 @pytest.fixture

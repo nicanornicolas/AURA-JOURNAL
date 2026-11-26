@@ -23,11 +23,18 @@ jobs:
         run: |
           uv venv
           uv pip install fastapi "uvicorn[standard]" pydantic pydantic-settings sqlalchemy \
-            psycopg2-binary pymongo httpx pyyaml loguru pytest pytest-mock pyairtable ruff
+            psycopg2-binary pymongo httpx pyyaml loguru pytest pytest-mock pyairtable ruff \
+            "passlib[bcrypt]" "python-jose[cryptography]" "pydantic[email]" pytest-asyncio
       - name: Lint new modules
-        run: .venv/bin/ruff check --select E,W,F,I,B,UP --ignore E501,B008 services/wellness_engine pipelines shared/mental_spectrum.py
+        run: .venv/bin/ruff check --select E,W,F,I,B,UP --ignore E501,B008 services/wellness_engine pipelines shared/mental_spectrum.py shared/auth.py
       - name: Test
         env:
           DATABASE_URL: sqlite://
           PYTHONPATH: .
         run: .venv/bin/pytest pipelines services/wellness_engine/tests services/entry_ingestor/tests tests -o addopts="" -q
+      - name: Test auth service
+        env:
+          DATABASE_URL: sqlite://
+        # Flat imports (as in its container), so run from the service folder.
+        working-directory: backend/services/auth_service
+        run: ../../.venv/bin/pytest tests -o addopts="" -q -p no:cacheprovider

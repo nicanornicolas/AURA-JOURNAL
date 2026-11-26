@@ -55,9 +55,19 @@ class TextPayload(BaseModel):
 
 
 class EntryCreate(BaseModel):
-    """Schema for creating a journal entry."""
-    user_id: uuid.UUID
-    content: str = Field(..., min_length=1)
+    """Schema for creating a journal entry.
+
+    ``user_id`` comes from the access token. It is accepted in the body only for
+    backwards compatibility and local development (AUTH_REQUIRED=false); when a
+    token is present the two must match.
+    """
+    user_id: Optional[uuid.UUID] = None
+    content: str = Field(..., min_length=1, max_length=20000)
+
+
+class EntryUpdate(BaseModel):
+    """Schema for editing a journal entry's text (triggers fresh analysis)."""
+    content: str = Field(..., min_length=1, max_length=20000)
 
 
 class Entry(BaseModel):

@@ -2,7 +2,7 @@
 
 import uuid
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column
-from sqlalchemy import DateTime, ForeignKey, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -35,7 +35,8 @@ class JournalInsight(Base):
         primary_key=True,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    analysis: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    # JSONB on Postgres, plain JSON elsewhere (lets tests run on in-memory SQLite)
+    analysis: Mapped[dict] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
