@@ -18,12 +18,16 @@ from pipelines.serenescapes_etl.extract import (
     parse_overpass,
 )
 from pipelines.serenescapes_etl.load import (
+    FIELDS,
     STATUS_NEW,
     airtable_row_to_place,
+    golden_to_place,
     load_to_airtable,
+    seed_to_place,
     to_airtable_fields,
 )
 from pipelines.serenescapes_etl.models import POI
+from pipelines.serenescapes_etl.run import SEED_FILE
 
 FIX = Path(__file__).parent / "fixtures" / "overpass_sample.json"
 
@@ -136,3 +140,18 @@ def test_final_values_win_over_estimates():
     assert row["biophilia"] == 6.0 and json.loads(row["trigger_warnings"]) == ["wildlife", "darkness"]
     assert row["cognitive_load"] == g.spectrum.cognitive_load
     assert airtable_row_to_place({"Name": "broken"}) is None
+
+
+def test_direct_postgres_rows_match_the_places_table():
+    g = to_golden(pois()[0], HeuristicAnnotator().annotate(pois()[0]))
+    row = golden_to_place(g)
+    assert row["place_id"] == g.poi.osm_id and row["status"] == "approved"
+    assert all(row[f] == getattr(g.spectrum, f) for f in FIELDS)
+    assert json.loads(row["trigger_warnings"]) == list(g.spectrum.trigger_warnings)
+
+
+def test_every_seed_place_converts_for_load_postgres():
+    seeds = json.loads(SEED_FILE.read_text())
+    rows = [seed_to_place(s) for s in seeds]
+    assert len(rows) == len(seeds) >= 10
+    assert all(r["status"] == "approved" and isinstance(json.loads(r["trigger_warnings"]), list) for r in rows)

@@ -23,6 +23,17 @@ python -m pipelines.serenescapes_etl.run load                    # Airtable, sta
 python -m pipelines.serenescapes_etl.run sync                    # Approved rows -> Postgres
 ```
 
+Skipping Airtable (staging, or places you have checked yourself):
+
+```bash
+python -m pipelines.serenescapes_etl.run load-postgres           # golden.jsonl -> Postgres, status approved
+python -m pipelines.serenescapes_etl.run load-postgres --seed    # the engine's 10 seed places -> Postgres
+```
+
+Both need `DATABASE_URL`. Then run the engine with `PLACES_SOURCE=postgres`. It reads the
+table on every request, so new or hidden places show up without a restart (set a row's
+`status` to anything but `approved` to hide it).
+
 Each stage writes a JSONL checkpoint, so a failed run resumes without re-calling APIs.
 On Kaggle, see `kaggle.py`.
 
@@ -36,7 +47,7 @@ On Kaggle, see `kaggle.py`.
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | gemini annotator | `gemini-2.0-flash` |
 | `OLLAMA_URL`, `OLLAMA_MODEL` | ollama annotator | `http://localhost:11434`, `qwen2.5:3b` |
 | `AIRTABLE_PAT`, `AIRTABLE_BASE_ID`, `AIRTABLE_TABLE_NAME` | load, sync | table `Places` |
-| `DATABASE_URL` | sync | e.g. `postgresql+psycopg2://aura:...@localhost:5433/aura_journal` |
+| `DATABASE_URL` | sync, load-postgres | e.g. `postgresql+psycopg2://aura:...@localhost:5433/aura_journal` |
 
 ## Airtable table "Places"
 

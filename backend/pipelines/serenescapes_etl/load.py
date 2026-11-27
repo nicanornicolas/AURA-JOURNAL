@@ -123,15 +123,54 @@ def airtable_row_to_place(fields: dict) -> dict | None:
 
 
 def sync_approved_to_postgres(table, database_url: str) -> int:
-    from sqlalchemy import create_engine, text
-
     rows = [airtable_row_to_place(r["fields"])
             for r in table.all(formula=f"{{Status}}='{STATUS_APPROVED}'")]
     rows = [r for r in rows if r]
+    upsert_places(rows, database_url)
+    logger.info(f"Synced {len(rows)} approved places to Postgres")
+    return len(rows)
+
+
+# ---------------- Direct to Postgres (no Airtable) ----------------
+# For staging without a curator: places go straight into the table the engine
+# serves. Use it for seed data or for runs you have checked yourself; the
+# Airtable path stays the way to put a human review step in front of real users.
+
+def golden_to_place(g: GoldenRecord, status: str = STATUS_APPROVED.lower()) -> dict:
+    s = g.spectrum
+    row = {
+        "place_id": g.poi.osm_id, "name": g.poi.name, "category": g.poi.category,
+        "latitude": g.poi.latitude, "longitude": g.poi.longitude, "status": status,
+        "summary": g.annotation.rationale or None,
+        "trigger_warnings": json.dumps(list(s.trigger_warnings)),
+    }
+    for f in FIELDS:
+        row[f] = float(getattr(s, f))
+    return row
+
+
+def seed_to_place(item: dict, status: str = STATUS_APPROVED.lower()) -> dict:
+    """A record from the engine's seed_places.json (the same shape the API serves)."""
+    s = item["spectrum"]
+    row = {
+        "place_id": item["place_id"], "name": item["name"], "category": item["category"],
+        "latitude": float(item["latitude"]), "longitude": float(item["longitude"]),
+        "status": status, "summary": item.get("summary"),
+        "trigger_warnings": json.dumps(list(s.get("trigger_warnings", []))),
+    }
+    for f in FIELDS:
+        row[f] = float(s[f])
+    return row
+
+
+def upsert_places(rows: list[dict], database_url: str) -> int:
+    """Create the places table if needed and insert or update every row."""
+    from sqlalchemy import create_engine, text
+
     engine = create_engine(database_url)
     with engine.begin() as conn:
         conn.execute(text(DDL))
         for r in rows:
             conn.execute(text(UPSERT), r)
-    logger.info(f"Synced {len(rows)} approved places to Postgres")
+    logger.info(f"Upserted {len(rows)} places into Postgres")
     return len(rows)

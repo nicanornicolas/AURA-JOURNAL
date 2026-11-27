@@ -26,7 +26,7 @@ jobs:
             psycopg2-binary pymongo httpx pyyaml loguru pytest pytest-mock pyairtable ruff \
             "passlib[bcrypt]" "python-jose[cryptography]" "pydantic[email]" pytest-asyncio
       - name: Lint new modules
-        run: .venv/bin/ruff check --select E,W,F,I,B,UP --ignore E501,B008 services/wellness_engine pipelines shared/mental_spectrum.py shared/auth.py
+        run: .venv/bin/ruff check --select E,W,F,I,B,UP --ignore E501,B008 services/wellness_engine pipelines shared/mental_spectrum.py shared/auth.py scripts/smoke_test.py tests/test_optional_deps.py
       - name: Test
         env:
           DATABASE_URL: sqlite://
