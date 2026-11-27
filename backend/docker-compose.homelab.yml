@@ -9,7 +9,7 @@
 #   systemctl --user enable podman-restart.service
 # (needs `loginctl enable-linger $USER`, already done by the homelab prep script).
 #
-# Memory budget (approx): postgres 384 MB, entry ingestor 256 MB,
+# Memory budget (approx): postgres 384 MB, entry ingestor 256 MB, auth 192 MB,
 # wellness engine 2 GB with Hugging Face models (or ~150 MB with EARS_PROVIDER=lexicon).
 # No MongoDB: insights are stored in Postgres (INSIGHT_STORE=postgres).
 #
@@ -60,6 +60,22 @@ services:
     mem_limit: 2g
     restart: always
 
+  auth_service:
+    build:
+      context: .
+      dockerfile: ./services/auth_service/Dockerfile
+    container_name: aura_homelab_auth
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env.homelab}
+    ports:
+      - "8003:8300"
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 192m
+    restart: always
+
   entry_ingestor:
     build:
       context: .
@@ -68,6 +84,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       INSIGHT_STORE: postgres
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env.homelab}
+      # Stays false until the app's login screens ship; then set AUTH_REQUIRED=true.
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-false}
       NLP_AGENT_URL: http://wellness_engine:8300/analyze
       LOG_LEVEL: INFO
     ports:

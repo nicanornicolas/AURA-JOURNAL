@@ -14,11 +14,22 @@ import os
 
 from auth_handler import AuthHandler
 from models import UserCreate, UserLogin, UserResponse, TokenResponse
-from database import get_db_session
+from contextlib import asynccontextmanager
+
+from database import create_tables, get_db_session
 from sqlalchemy.orm import Session
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create users/user_sessions if missing (idempotent). Alembic migrations in
+    # migrate.py remain the tool for schema changes later.
+    create_tables()
+    yield
+
 
 # Initialize FastAPI app
 app = FastAPI(
+    lifespan=lifespan,
     title="AURA Journal Authentication Service",
     description="User authentication and authorization service with JWT tokens",
     version="1.0.0"

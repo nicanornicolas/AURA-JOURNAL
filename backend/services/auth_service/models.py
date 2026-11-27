@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
 import re
+import uuid
 
 class UserCreate(BaseModel):
     """
@@ -82,6 +83,13 @@ class UserResponse(BaseModel):
     """
     user_id: str = Field(..., description="Unique user identifier")
     email: str = Field(..., description="User email address")
+
+    @field_validator("user_id", mode="before")
+    @classmethod
+    def _uuid_to_str(cls, v: object) -> object:
+        # The database returns uuid.UUID; the API contract is a string.
+        return str(v) if isinstance(v, uuid.UUID) else v
+
     first_name: Optional[str] = Field(None, description="User first name")
     last_name: Optional[str] = Field(None, description="User last name")
     is_active: bool = Field(..., description="User account status")

@@ -9,14 +9,17 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from unittest.mock import patch
 
-from ..main import app
-from ..database import Base, get_db_session
+from main import app
+from database import Base, get_db_session
 
 # Test database setup
-TEST_DATABASE_URL = "sqlite:///./test_auth_api.db"
-test_engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+TEST_DATABASE_URL = "sqlite://"  # in-memory: no stray .db files
+test_engine = create_engine(
+    TEST_DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=StaticPool
+)
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 def override_get_db():
@@ -192,7 +195,8 @@ class TestAuthAPI:
     def test_unauthorized_access(self, client):
         """Test accessing protected endpoints without token"""
         response = client.get("/auth/profile")
-        assert response.status_code == 403  # No Authorization header
+        # FastAPI >= 0.115 answers a missing bearer token with 401 (older versions: 403)
+        assert response.status_code in (401, 403)
         
         # Test with invalid token
         headers = {"Authorization": "Bearer invalid_token"}
