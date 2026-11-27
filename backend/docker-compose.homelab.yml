@@ -34,6 +34,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      # The first start creates the database, which can take over a minute on a
+      # 2-core box with an encrypted disk. Failed checks in this window don't count.
+      start_period: 120s
     mem_limit: 384m
     restart: always
 
