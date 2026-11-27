@@ -5,6 +5,8 @@
     python -m pipelines.serenescapes_etl.run load        # golden -> Airtable (Needs Review)
     python -m pipelines.serenescapes_etl.run sync        # Airtable Approved -> Postgres places
     python -m pipelines.serenescapes_etl.run all         # extract + annotate + load
+    python -m pipelines.serenescapes_etl.run load-postgres          # golden -> Postgres, no Airtable
+    python -m pipelines.serenescapes_etl.run load-postgres --seed   # bundled seed places -> Postgres
 
 Each stage writes a JSONL checkpoint, so a failed run resumes from the last
 stage instead of re-calling every API. Run from backend/.
@@ -22,7 +24,13 @@ from loguru import logger
 from .annotate import make_annotator, to_golden
 from .config import PipelineSettings
 from .extract import build_overpass_query, enrich_foursquare, fetch_osm, parse_overpass
-from .load import load_to_airtable, sync_approved_to_postgres
+from .load import (
+    golden_to_place,
+    load_to_airtable,
+    seed_to_place,
+    sync_approved_to_postgres,
+    upsert_places,
+)
 from .models import POI, GoldenRecord
 
 
@@ -68,10 +76,26 @@ def stage_annotate(s: PipelineSettings, annotator: str | None = None) -> list[Go
     return golden
 
 
+SEED_FILE = Path(__file__).resolve().parents[2] / "services" / "wellness_engine" / "app" / "data" / "seed_places.json"
+
+
+def stage_load_postgres(s: PipelineSettings, seed: bool = False) -> int:
+    """Skip Airtable: write places straight into the table the engine serves."""
+    if not s.database_url:
+        sys.exit("DATABASE_URL is required for load-postgres")
+    if seed:
+        rows = [seed_to_place(item) for item in json.loads(SEED_FILE.read_text())]
+    else:
+        rows = [golden_to_place(g) for g in _read(s.data_dir / "golden.jsonl", GoldenRecord)]
+    return upsert_places(rows, s.database_url)
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("stage", choices=["extract", "annotate", "load", "sync", "all"])
+    ap.add_argument("stage", choices=["extract", "annotate", "load", "sync", "load-postgres", "all"])
     ap.add_argument("--annotator", choices=["heuristic", "gemini", "ollama"])
+    ap.add_argument("--seed", action="store_true",
+                    help="load-postgres: use the bundled seed places instead of golden.jsonl")
     args = ap.parse_args(argv)
     s = PipelineSettings()
 
@@ -85,6 +109,8 @@ def main(argv: list[str] | None = None) -> None:
         if not s.database_url:
             sys.exit("DATABASE_URL is required for sync")
         sync_approved_to_postgres(_airtable_table(s), s.database_url)
+    if args.stage == "load-postgres":
+        stage_load_postgres(s, args.seed)
 
 
 if __name__ == "__main__":

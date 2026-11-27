@@ -2,7 +2,6 @@
 
 from typing import Generator
 
-import pymongo
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -47,6 +46,10 @@ class DatabaseManager:
     def mongo_client(self):
         """Get or create MongoDB client."""
         if self._mongo_client is None:
+            # Imported lazily: MongoDB is optional (INSIGHT_STORE=mongo only), and
+            # services such as the Wellness Engine don't install pymongo at all.
+            import pymongo
+
             self._mongo_client = pymongo.MongoClient(self.settings.mongodb_url)
         return self._mongo_client
     

@@ -30,10 +30,15 @@ services:
     ports:
       - "127.0.0.1:5433:5432"   # local only (pipeline sync, backups); not exposed to the LAN
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      # Exec form, not CMD-SHELL: Podman's Docker-compatible API runs CMD-SHELL checks
+      # unreliably, which left a healthy database marked unhealthy on the homelab.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      # The first start creates the database, which can take over a minute on a
+      # 2-core box with an encrypted disk. Failed checks in this window don't count.
+      start_period: 120s
     mem_limit: 384m
     restart: always
 
@@ -48,6 +53,8 @@ services:
       EARS_PROVIDER: ${EARS_PROVIDER:-auto}
       PLACES_SOURCE: ${PLACES_SOURCE:-file}
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      # 1 = never contact Hugging Face (set after the first start has downloaded the models).
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
       OMP_NUM_THREADS: "2"
       TOKENIZERS_PARALLELISM: "false"
     volumes:

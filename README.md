@@ -4,6 +4,8 @@
 
 AURA Journal is a full-stack journaling application that combines the simplicity of personal reflection with the power of AI-driven sentiment analysis and topic extraction. Built with React Native (Expo) for cross-platform mobile experience and a robust Python FastAPI microservices backend.
 
+> **Running and testing it:** [GUIDE.md](GUIDE.md) shows how to prove each step works (unit tests, a stack smoke test, a phone check). [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) covers the homelab and a Truehost VPS.
+
 ## 🎯 Project Vision
 
 Transform personal journaling into an insightful, data-driven experience that helps users understand their emotional patterns, track personal growth, and gain deeper self-awareness through intelligent text analysis.
