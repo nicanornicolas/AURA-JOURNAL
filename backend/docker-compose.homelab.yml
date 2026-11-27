@@ -9,6 +9,12 @@
 #   systemctl --user enable podman-restart.service
 # (needs `loginctl enable-linger $USER`, already done by the homelab prep script).
 #
+# Start order: services wait only for the db container to *start*, not to report
+# healthy. Rootless Podman's scheduled health checks can fail even when Postgres is
+# fine (seen on the homelab), and podman-restart.service ignores depends_on at boot
+# anyway. If the database isn't ready yet, a service exits and `restart: always`
+# brings it back a few seconds later.
+#
 # Memory budget (approx): postgres 384 MB, entry ingestor 256 MB, auth 192 MB,
 # wellness engine 2 GB with Hugging Face models (or ~150 MB with EARS_PROVIDER=lexicon).
 # No MongoDB: insights are stored in Postgres (INSIGHT_STORE=postgres).
@@ -63,7 +69,7 @@ services:
       - "8300:8300"
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
     mem_limit: 2g
     restart: always
 
@@ -79,7 +85,7 @@ services:
       - "8003:8300"
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
     mem_limit: 192m
     restart: always
 
@@ -100,7 +106,7 @@ services:
       - "8001:8100"
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
       wellness_engine:
         condition: service_started
     mem_limit: 256m
