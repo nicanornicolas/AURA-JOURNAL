@@ -88,9 +88,16 @@ Pick one. Running both side by side works, but doubles the confusion when debugg
 ### Get the code
 
 ```bash
-git clone https://github.com/nicanornicolas/AURA-JOURNAL.git ~/AURA-JOURNAL
-cd ~/AURA-JOURNAL/backend
+# On the homelab, apps live in /srv/apps (created by 04-apps-prep.sh) and the repo is
+# cloned over SSH with the read-only deploy key that script made.
+cd /srv/apps
+git clone git@github.com:nicanornicolas/AURA-JOURNAL.git
+cd /srv/apps/AURA-JOURNAL/backend
 ```
+
+Everything in this guide runs from `/srv/apps/AURA-JOURNAL` (the compose file and
+`.env.homelab` are in its `backend/` folder). Check you're in the right place with
+`git -C /srv/apps/AURA-JOURNAL remote -v`.
 
 ---
 
@@ -115,7 +122,7 @@ Swahili need detection and the crisis screen work fully. Emotion scores are coar
 with the models.
 
 ```bash
-cd ~/AURA-JOURNAL/backend
+cd /srv/apps/AURA-JOURNAL/backend
 cp .env.homelab.example .env.homelab
 nano .env.homelab
 ```
@@ -142,7 +149,7 @@ python3 scripts/smoke_test.py                            # expect: All checks pa
 To save typing, add an alias:
 
 ```bash
-echo "alias aura='docker compose -f ~/AURA-JOURNAL/backend/docker-compose.homelab.yml --env-file ~/AURA-JOURNAL/backend/.env.homelab'" >> ~/.bashrc
+echo "alias aura='docker compose -f /srv/apps/AURA-JOURNAL/backend/docker-compose.homelab.yml --env-file /srv/apps/AURA-JOURNAL/backend/.env.homelab'" >> ~/.bashrc
 source ~/.bashrc
 aura ps; aura logs -f wellness_engine; aura restart entry_ingestor
 ```
@@ -430,7 +437,7 @@ deploy for it today.
 **Update to the latest code**
 
 ```bash
-cd ~/AURA-JOURNAL && git pull
+cd /srv/apps/AURA-JOURNAL && git pull
 aura up -d --build              # rebuilds only what changed; data and models are kept
 python3 backend/scripts/smoke_test.py
 ```
