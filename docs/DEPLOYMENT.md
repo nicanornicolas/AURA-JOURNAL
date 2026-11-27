@@ -40,6 +40,12 @@ All of it is defined in `backend/docker-compose.homelab.yml` and configured by o
 Podman ships with Fedora. You can use it or Docker. The stack was validated with Docker
 Compose; Podman uses the same file.
 
+**Which one?** Check first: `rpm -q podman-docker docker-compose`. If both are installed
+(as on the homelab), use **Option A with the Podman socket**. Your `docker` command is
+already Podman, and Docker CE would conflict with both packages. Don't force Docker CE in
+with `--allowerasing`: it removes `podman-docker`, and anything else already running on
+Podman (Gramps Web) ends up on a different engine from this stack.
+
 **Option A: Podman (already installed)**
 
 ```bash
@@ -57,9 +63,17 @@ systemctl --user enable --now podman.socket
 echo 'export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock' >> ~/.bashrc && source ~/.bashrc
 ```
 
-Then every `docker compose` command below works unchanged.
+Then every `docker compose` command below works unchanged. Check it with:
 
-**Option B: Docker**
+```bash
+docker compose version        # podman-docker passes this to Podman, which runs docker-compose
+docker info | grep -i rootless   # "rootless: true" means it is talking to your user's Podman
+```
+
+Rootless Podman containers belong to your user, so run every command here **without
+`sudo`** (with `sudo` you'd see an empty, separate set of containers).
+
+**Option B: Docker** (only on a server without `podman-docker`, such as a fresh VPS)
 
 ```bash
 sudo dnf install -y dnf-plugins-core
