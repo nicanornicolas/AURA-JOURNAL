@@ -124,19 +124,32 @@ with the models.
 ```bash
 cd /srv/apps/AURA-JOURNAL/backend
 cp .env.homelab.example .env.homelab
-nano .env.homelab
+# Fill in random secrets and lexicon-mode settings without opening an editor:
+sed -i \
+  -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 24)|" \
+  -e "s|^JWT_SECRET_KEY=.*|JWT_SECRET_KEY=$(openssl rand -hex 32)|" \
+  -e "s|^EARS_EXTRAS=.*|EARS_EXTRAS=none|" \
+  -e "s|^EARS_PROVIDER=.*|EARS_PROVIDER=lexicon|" \
+  -e "s|^PLACES_SOURCE=.*|PLACES_SOURCE=file|" \
+  -e "s|^AUTH_REQUIRED=.*|AUTH_REQUIRED=false|" \
+  .env.homelab
+chmod 600 .env.homelab
+grep -v '^#' .env.homelab | grep .      # check the values
 ```
 
-Set:
+That gives:
 
 ```ini
-POSTGRES_PASSWORD=<a long random password>
+POSTGRES_PASSWORD=<random>
 EARS_EXTRAS=none
 EARS_PROVIDER=lexicon
 PLACES_SOURCE=file
-JWT_SECRET_KEY=<output of: openssl rand -hex 32>
+JWT_SECRET_KEY=<random>
 AUTH_REQUIRED=false          # until the app has login screens; see section 5
 ```
+
+To change one value later, use the same `sed -i -e "s|^NAME=.*|NAME=value|" .env.homelab`,
+or `vi .env.homelab` (Fedora Server has `vi` but not `nano`; `sudo dnf install nano` adds it).
 
 Start it:
 
