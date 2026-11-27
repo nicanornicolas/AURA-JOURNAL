@@ -30,7 +30,9 @@ services:
     ports:
       - "127.0.0.1:5433:5432"   # local only (pipeline sync, backups); not exposed to the LAN
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      # Exec form, not CMD-SHELL: Podman's Docker-compatible API runs CMD-SHELL checks
+      # unreliably, which left a healthy database marked unhealthy on the homelab.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
